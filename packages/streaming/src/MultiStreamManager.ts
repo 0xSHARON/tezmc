@@ -81,7 +81,7 @@ export class MultiStreamManager extends EventEmitter {
       platform: primaryYt.platform,
       status: 'STANDBY',
       rtmpUrl: primaryYt.rtmpUrl,
-      hasKey: !!primaryYt.streamKey,
+      hasKey: !!(primaryYt.streamKey || process.env.YOUTUBE_STREAM_KEY),
       enabled: true
     });
   }
@@ -119,18 +119,23 @@ export class MultiStreamManager extends EventEmitter {
     const updated: StreamDestination = {
       ...existing,
       ...updates,
+      // Preserve existing key if update does not provide a new non-empty key
+      streamKey: (updates.streamKey !== undefined && updates.streamKey.trim().length > 0)
+        ? updates.streamKey.trim()
+        : existing.streamKey,
       id
     };
 
     this.destinations.set(id, updated);
     const prevStatus = this.statuses.get(id);
+    const resolvedKey = this.resolveStreamKey(updated);
     this.statuses.set(id, {
       id,
       name: updated.name,
       platform: updated.platform,
       status: prevStatus?.status || 'STANDBY',
       rtmpUrl: updated.rtmpUrl,
-      hasKey: !!updated.streamKey,
+      hasKey: !!resolvedKey && resolvedKey.length > 0,
       enabled: updated.enabled
     });
 
@@ -170,27 +175,57 @@ export class MultiStreamManager extends EventEmitter {
   }
 
   public getSanitizedDestinations(): (Omit<StreamDestination, 'streamKey'> & { hasKey: boolean; status: string })[] {
-    return Array.from(this.destinations.values()).map(d => ({
-      id: d.id,
-      name: d.name,
-      platform: d.platform,
-      rtmpUrl: d.rtmpUrl,
-      enabled: d.enabled,
-      hasKey: !!d.streamKey && d.streamKey.length > 0,
-      status: this.statuses.get(d.id)?.status || 'STANDBY'
-    }));
+    return Array.from(this.destinations.values()).map(d => {
+      const resolvedKey = this.resolveStreamKey(d);
+      return {
+        id: d.id,
+        name: d.name,
+        platform: d.platform,
+        rtmpUrl: d.rtmpUrl,
+        enabled: d.enabled,
+        hasKey: !!resolvedKey && resolvedKey.length > 0,
+        status: this.statuses.get(d.id)?.status || 'STANDBY'
+      };
+    });
   }
 
   public getActiveDestinations(): StreamDestination[] {
     return Array.from(this.destinations.values()).filter(d => d.enabled);
   }
 
+  /**
+   * Resolves the stream key for a destination, falling back to cached destination secrets
+   * and environment variables (e.g. YOUTUBE_STREAM_KEY, TWITCH_STREAM_KEY).
+   */
+  public resolveStreamKey(dest: StreamDestination | { id?: string; platform?: string; streamKey?: string }): string {
+    if (dest.streamKey && dest.streamKey.trim().length > 0) {
+      return dest.streamKey.trim();
+    }
+    if (dest.id && this.destinations.has(dest.id)) {
+      const saved = this.destinations.get(dest.id);
+      if (saved?.streamKey && saved.streamKey.trim().length > 0) {
+        return saved.streamKey.trim();
+      }
+    }
+    if (dest.platform === 'youtube' || dest.id === 'dest-yt-primary' || (!dest.platform && dest.id?.includes('yt'))) {
+      return (process.env.YOUTUBE_STREAM_KEY || '').trim();
+    }
+    if (dest.platform === 'twitch') {
+      return (process.env.TWITCH_STREAM_KEY || '').trim();
+    }
+    if (dest.platform === 'kick') {
+      return (process.env.KICK_STREAM_KEY || '').trim();
+    }
+    return '';
+  }
+
   public buildFullUrl(dest: StreamDestination): string {
-    if (!dest.streamKey) {
+    const key = this.resolveStreamKey(dest);
+    if (!key) {
       return dest.rtmpUrl;
     }
     const cleanUrl = dest.rtmpUrl.replace(/\/$/, '');
-    return `${cleanUrl}/${dest.streamKey}`;
+    return `${cleanUrl}/${key}`;
   }
 
   /**
@@ -200,20 +235,30 @@ export class MultiStreamManager extends EventEmitter {
    * ['-f', 'tee', '-map', '0:v', '-map', '1:a', '[f=flv:onfail=ignore]url1|[f=flv:onfail=ignore]url2']
    */
   public buildFFmpegOutputArgs(config: StreamConfig, overrideTargets?: StreamDestination[]): string[] {
-    const targets = (overrideTargets && overrideTargets.length > 0)
+    const rawTargets = (overrideTargets && overrideTargets.length > 0)
       ? overrideTargets
       : (config.destinations && config.destinations.length > 0)
         ? config.destinations.filter(d => d.enabled)
         : this.getActiveDestinations();
 
+    // Hydrate each target destination with secret key if missing
+    const targets = rawTargets.map(t => ({
+      ...t,
+      streamKey: this.resolveStreamKey(t)
+    }));
+
     // Fallback: single primary destination from config.rtmpUrl
     if (targets.length <= 1) {
       const primary = targets[0];
-      const targetUrl = primary
-        ? this.buildFullUrl(primary)
-        : config.streamKey
-          ? `${config.rtmpUrl.replace(/\/$/, '')}/${config.streamKey}`
+      let targetUrl: string;
+      if (primary) {
+        targetUrl = this.buildFullUrl(primary);
+      } else {
+        const fallbackKey = config.streamKey || process.env.YOUTUBE_STREAM_KEY || '';
+        targetUrl = fallbackKey
+          ? `${config.rtmpUrl.replace(/\/$/, '')}/${fallbackKey}`
           : config.rtmpUrl;
+      }
 
       return ['-f', 'flv', targetUrl];
     }

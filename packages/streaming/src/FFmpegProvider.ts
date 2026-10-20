@@ -42,8 +42,29 @@ export class FFmpegProvider extends EventEmitter implements StreamingProvider {
     this.status = 'INITIALIZING';
     this.emit('status', this.status);
 
-    const fullRtmpDestination = config.streamKey
-      ? `${config.rtmpUrl.replace(/\/$/, '')}/${config.streamKey}`
+    const multiManager = MultiStreamManager.getInstance();
+    let streamKey = config.streamKey;
+    if (!streamKey) {
+      const activeTargets = config.destinations?.filter(d => d.enabled) || [];
+      if (activeTargets.length > 0) {
+        streamKey = multiManager.resolveStreamKey(activeTargets[0]);
+      }
+      if (!streamKey && config.rtmpUrl.includes('youtube')) {
+        streamKey = process.env.YOUTUBE_STREAM_KEY || '';
+      }
+    }
+
+    // Safety pre-flight check: prevent crash loop if streaming to YouTube without a key
+    if (config.rtmpUrl.includes('youtube.com') && (!streamKey || streamKey.trim() === '')) {
+      const activeTargets = config.destinations?.filter(d => d.enabled) || [];
+      const hasAnyKey = activeTargets.some(t => !!multiManager.resolveStreamKey(t));
+      if (!hasAnyKey) {
+        throw new Error('Cannot start broadcast: YouTube stream key is missing. Set YOUTUBE_STREAM_KEY in .env or configure in the dashboard.');
+      }
+    }
+
+    const fullRtmpDestination = streamKey
+      ? `${config.rtmpUrl.replace(/\/$/, '')}/${streamKey}`
       : config.rtmpUrl;
 
     const args = this.buildFFmpegArgs(config, source, fullRtmpDestination);
@@ -221,9 +242,14 @@ export class FFmpegProvider extends EventEmitter implements StreamingProvider {
       const multiArgs = multiManager.buildFFmpegOutputArgs(config);
       args.push(...multiArgs);
     } else {
+      const multiManager = MultiStreamManager.getInstance();
+      const activeTarget = config.destinations?.find(d => d.enabled);
+      const targetUrl = activeTarget
+        ? multiManager.buildFullUrl(activeTarget)
+        : rtmpDest;
       args.push(
         '-f', 'flv',
-        rtmpDest
+        targetUrl
       );
     }
 

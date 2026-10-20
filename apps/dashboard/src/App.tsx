@@ -176,8 +176,16 @@ export default function App() {
         Authorization: `Bearer ${authToken}`
       },
       body: JSON.stringify({
-        gameId: 'minecraft-java-mock',
-        gameConfig: { objective: 'bounded_exploration' },
+        gameId: 'subway-surfers',
+        gameConfig: {
+          botName: 'JakeSurfer',
+          mode: 'autonomous_ai',
+          difficulty: 'normal',
+          autoRevive: true,
+          viewerPort: 3008,
+          enableViewer: true,
+          startingMultiplier: 10
+        },
         streamConfig: config
       })
     });
