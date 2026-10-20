@@ -2,7 +2,7 @@
 FROM node:22-bookworm-slim AS base
 WORKDIR /app
 
-# Install FFmpeg, Xvfb, Chromium and graphic dependencies for headless canvas & rendering
+# Install FFmpeg, Xvfb, Chromium, Python3, and graphic dependencies for headless canvas & retro emulation
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     xvfb \
@@ -13,7 +13,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     procps \
     curl \
     ca-certificates \
+    python3 \
+    python3-pip \
+    python3-pil \
+    libsdl2-2.0-0 \
     && rm -rf /var/lib/apt/lists/*
+
+RUN pip3 install --no-cache-dir pyboy pillow --break-system-packages
 
 RUN npm install -g pnpm
 

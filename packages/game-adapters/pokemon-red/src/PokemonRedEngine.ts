@@ -1,4 +1,8 @@
 import http from 'node:http';
+import fs from 'node:fs';
+import path from 'node:path';
+import { spawn, ChildProcess } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import { EventEmitter } from 'node:events';
 import { PokemonRedConfig } from '@autoplay/shared';
 import { GameBoyButton, PokemonRedState, PokemonPartyMember } from './types.js';
@@ -7,6 +11,7 @@ import { PokemonRomManager } from './PokemonRomManager.js';
 export class PokemonRedEngine extends EventEmitter {
   private config: PokemonRedConfig;
   private server: http.Server | null = null;
+  private pyboyProcess: ChildProcess | null = null;
   private isRunning = false;
   private romBuffer: Buffer | null = null;
   private romPath: string = '';
@@ -131,13 +136,16 @@ export class PokemonRedEngine extends EventEmitter {
       });
     }
 
-    // 2. Start HTTP Broadcast Studio Server
+    // 2. Start PyBoy Runner
+    this.startPyBoyRunner();
+
+    // 3. Start HTTP Broadcast Studio Server
     await this.startHttpServer(this.config.viewerPort || 3009);
 
-    // 3. Start Democracy Tick
+    // 4. Start Democracy Tick
     this.startDemocracyLoop();
 
-    // 4. Start Autonomous Co-Pilot Loop (fills in when chat is quiet)
+    // 5. Start Autonomous Co-Pilot Loop (fills in when chat is quiet)
     this.startAutonomousCoPilot();
 
     this.isRunning = true;
@@ -145,6 +153,12 @@ export class PokemonRedEngine extends EventEmitter {
 
   public async stop(): Promise<void> {
     this.isRunning = false;
+    if (this.pyboyProcess) {
+      try {
+        this.pyboyProcess.kill('SIGTERM');
+      } catch {}
+      this.pyboyProcess = null;
+    }
     if (this.democracyTimer) {
       clearInterval(this.democracyTimer);
       this.democracyTimer = null;
@@ -161,6 +175,66 @@ export class PokemonRedEngine extends EventEmitter {
     }
   }
 
+  private startPyBoyRunner(): void {
+    try {
+      const __dirname = path.dirname(fileURLToPath(import.meta.url));
+      const candidates = [
+        path.join(__dirname, 'pyboy_runner.py'),
+        path.join(process.cwd(), 'packages', 'game-adapters', 'pokemon-red', 'src', 'pyboy_runner.py'),
+        '/app/packages/game-adapters/pokemon-red/src/pyboy_runner.py'
+      ];
+      const runnerScript = candidates.find(c => fs.existsSync(c));
+      const romPath = this.romPath || PokemonRomManager.getDefaultRomPath();
+
+      if (!runnerScript || !fs.existsSync(romPath)) {
+        this.emit('log', { level: 'warn', message: `PyBoy runner or ROM not found. Runner: ${runnerScript}, ROM: ${romPath}` });
+        return;
+      }
+
+      const pythonBin = process.platform === 'win32' ? 'python' : 'python3';
+      this.emit('log', { level: 'info', message: `Launching PyBoy runner: ${pythonBin} ${runnerScript} ${romPath}` });
+
+      this.pyboyProcess = spawn(pythonBin, [runnerScript, romPath], {
+        stdio: ['ignore', 'pipe', 'pipe'],
+        env: { ...process.env, PYBOY_PORT: '3010' }
+      });
+
+      this.pyboyProcess.stdout?.on('data', (d) => {
+        const text = d.toString().trim();
+        if (text) this.emit('log', { level: 'info', message: `[PyBoy] ${text}` });
+      });
+
+      this.pyboyProcess.stderr?.on('data', (d) => {
+        const text = d.toString().trim();
+        if (text && !text.includes('UserWarning')) {
+          this.emit('log', { level: 'debug', message: `[PyBoy] ${text}` });
+        }
+      });
+    } catch (err: any) {
+      this.emit('log', { level: 'warn', message: `Failed to spawn PyBoy: ${err.message}` });
+    }
+  }
+
+  private forwardActionToPyBoy(action: string, sender: string): void {
+    const postData = JSON.stringify({ action, sender });
+    const req = http.request({
+      hostname: '127.0.0.1',
+      port: 3010,
+      path: '/action',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(postData)
+      },
+      timeout: 500
+    }, (res) => {
+      res.resume();
+    });
+    req.on('error', () => {});
+    req.write(postData);
+    req.end();
+  }
+
   public getState(): PokemonRedState {
     return { ...this.state };
   }
@@ -168,6 +242,7 @@ export class PokemonRedEngine extends EventEmitter {
   public executeAction(button: GameBoyButton, sender = 'Chat'): { success: boolean; message: string } {
     this.lastChatActionTimestamp = Date.now();
     const btn = button.toLowerCase() as GameBoyButton;
+    this.forwardActionToPyBoy(btn, sender);
 
     if (this.state.mode === 'democracy') {
       this.state.democracyVotes[btn] = (this.state.democracyVotes[btn] || 0) + 1;
@@ -317,9 +392,76 @@ export class PokemonRedEngine extends EventEmitter {
       this.server = http.createServer((req, res) => {
         const url = req.url || '/';
 
+        if (url.startsWith('/screen')) {
+          const proxyReq = http.request({
+            hostname: '127.0.0.1',
+            port: 3010,
+            path: '/screen',
+            method: 'GET',
+            timeout: 1000
+          }, (proxyRes) => {
+            res.writeHead(proxyRes.statusCode || 200, {
+              'Content-Type': 'image/jpeg',
+              'Access-Control-Allow-Origin': '*',
+              'Cache-Control': 'no-cache, no-store, must-revalidate'
+            });
+            proxyRes.pipe(res);
+          });
+          proxyReq.on('error', () => {
+            res.writeHead(503);
+            res.end();
+          });
+          proxyReq.end();
+          return;
+        }
+
+        if (url.startsWith('/stream')) {
+          const proxyReq = http.request({
+            hostname: '127.0.0.1',
+            port: 3010,
+            path: '/stream',
+            method: 'GET'
+          }, (proxyRes) => {
+            res.writeHead(proxyRes.statusCode || 200, {
+              'Content-Type': 'multipart/x-mixed-replace; boundary=--frame',
+              'Access-Control-Allow-Origin': '*',
+              'Cache-Control': 'no-cache, no-store, must-revalidate'
+            });
+            proxyRes.pipe(res);
+          });
+          proxyReq.on('error', () => {
+            res.writeHead(503);
+            res.end();
+          });
+          proxyReq.end();
+          return;
+        }
+
         if (url === '/state') {
-          res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
-          res.end(JSON.stringify(this.state));
+          // Attempt to pull latest RAM telemetry from PyBoy
+          const stateReq = http.request({
+            hostname: '127.0.0.1',
+            port: 3010,
+            path: '/state',
+            method: 'GET',
+            timeout: 500
+          }, (stateRes) => {
+            let data = '';
+            stateRes.on('data', chunk => data += chunk);
+            stateRes.on('end', () => {
+              try {
+                const pyboyState = JSON.parse(data);
+                this.state = { ...this.state, ...pyboyState };
+              } catch {}
+              res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+              res.end(JSON.stringify(this.state));
+            });
+          });
+          stateReq.on('error', () => {
+            res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+            res.end(JSON.stringify(this.state));
+          });
+          stateReq.end();
           return;
         }
 
@@ -463,114 +605,37 @@ export class PokemonRedEngine extends EventEmitter {
     }
     setInterval(syncState, 60);
 
-    // Simulated 160x144 Game Boy Framebuffer Generator
+    // 160x144 Game Boy Framebuffer directly from PyBoy Emulation
     const gbCanvas = document.createElement('canvas');
     gbCanvas.width = 160;
     gbCanvas.height = 144;
     const gbCtx = gbCanvas.getContext('2d');
+    gbCtx.imageSmoothingEnabled = false;
 
-    // Classic Game Boy DMG Green Palette
-    const DMG_COLORS = ['#8bac0f', '#306230', '#0f380f', '#9bbc0f'];
+    let hasPyBoyFrame = false;
+    function fetchNextPyBoyFrame() {
+      const img = new Image();
+      img.onload = () => {
+        hasPyBoyFrame = true;
+        gbCtx.imageSmoothingEnabled = false;
+        gbCtx.drawImage(img, 0, 0, 160, 144);
+        setTimeout(fetchNextPyBoyFrame, 33);
+      };
+      img.onerror = () => {
+        setTimeout(fetchNextPyBoyFrame, 150);
+      };
+      img.src = '/screen.jpg?t=' + Date.now();
+    }
+    fetchNextPyBoyFrame();
 
-    let gbFrame = 0;
     function renderGameBoyScreen() {
-      gbFrame++;
-      // Background base
-      gbCtx.fillStyle = '#9bbc0f';
-      gbCtx.fillRect(0, 0, 160, 144);
-
-      if (state.isBattle && state.battleEnemy) {
-        // Battle Screen
-        gbCtx.fillStyle = '#8bac0f';
-        gbCtx.fillRect(0, 0, 160, 96);
-
-        // Enemy Pokémon Platform & Sprite
-        gbCtx.fillStyle = '#306230';
-        gbCtx.beginPath();
-        gbCtx.ellipse(120, 48, 28, 8, 0, 0, Math.PI * 2);
-        gbCtx.fill();
-
-        // Enemy Monster Silhouette
+      if (!hasPyBoyFrame) {
         gbCtx.fillStyle = '#0f380f';
-        gbCtx.fillRect(108, 20, 24, 24);
-        gbCtx.fillRect(112, 16, 16, 6);
-
-        // Enemy HUD
-        gbCtx.fillStyle = '#0f380f';
-        gbCtx.font = '8px monospace';
-        gbCtx.fillText(state.battleEnemy.name + ' :L' + state.battleEnemy.level, 10, 20);
-        gbCtx.strokeRect(10, 24, 60, 5);
-        gbCtx.fillRect(11, 25, Math.round(58 * (state.battleEnemy.hpPercent / 100)), 3);
-
-        // Player Pokémon (Back Sprite)
-        gbCtx.fillStyle = '#306230';
-        gbCtx.beginPath();
-        gbCtx.ellipse(44, 88, 30, 8, 0, 0, Math.PI * 2);
-        gbCtx.fill();
-
-        gbCtx.fillStyle = '#0f380f';
-        gbCtx.fillRect(32, 54, 28, 32);
-
-        // Player HUD
-        gbCtx.font = '8px monospace';
-        const activeMon = state.party[0] || { name: 'CHARMANDER', level: 14, currentHp: 38, maxHp: 38 };
-        gbCtx.fillText(activeMon.name + ' :L' + activeMon.level, 80, 68);
-        gbCtx.strokeRect(80, 72, 65, 5);
-        const hpRatio = activeMon.currentHp / activeMon.maxHp;
-        gbCtx.fillRect(81, 73, Math.round(63 * hpRatio), 3);
-        gbCtx.fillText(activeMon.currentHp + '/' + activeMon.maxHp, 100, 86);
-
-        // Dialogue Box
+        gbCtx.fillRect(0, 0, 160, 144);
         gbCtx.fillStyle = '#9bbc0f';
-        gbCtx.fillRect(0, 96, 160, 48);
-        gbCtx.strokeRect(2, 98, 156, 44);
-        gbCtx.fillStyle = '#0f380f';
-        gbCtx.fillText('What will', 10, 114);
-        gbCtx.fillText(activeMon.name + ' do?', 10, 128);
-      } else {
-        // Overworld Exploration Screen (Tiles & Sprite)
-        const walkBob = Math.sin(gbFrame * 0.1) * 2;
-        // Grass / Path tiles
-        gbCtx.fillStyle = '#8bac0f';
-        for (let y = 0; y < 144; y += 16) {
-          for (let x = 0; x < 160; x += 16) {
-            if ((x + y) % 32 === 0) {
-              gbCtx.fillRect(x, y, 16, 16);
-            }
-          }
-        }
-
-        // Tall Grass Patches
-        gbCtx.fillStyle = '#306230';
-        for (let gx = 16; gx < 64; gx += 16) {
-          gbCtx.fillRect(gx, 32, 14, 14);
-          gbCtx.fillRect(gx + 2, 30, 2, 4);
-        }
-
-        // Town House / Building Roof
-        gbCtx.fillStyle = '#0f380f';
-        gbCtx.fillRect(88, 16, 56, 36);
-        gbCtx.fillStyle = '#8bac0f';
-        gbCtx.fillRect(104, 34, 12, 18); // Door
-
-        // Player Character (Red) in center
-        const px = 72;
-        const py = 64 + walkBob;
-        gbCtx.fillStyle = '#0f380f';
-        // Hat & head
-        gbCtx.fillRect(px + 4, py, 8, 7);
-        // Body
-        gbCtx.fillRect(px + 3, py + 7, 10, 8);
-        // Legs
-        gbCtx.fillRect(px + 4, py + 15, 3, 5);
-        gbCtx.fillRect(px + 9, py + 15, 3, 5);
-
-        // Location Watermark
-        gbCtx.fillStyle = 'rgba(15, 56, 15, 0.75)';
-        gbCtx.fillRect(2, 128, 156, 14);
-        gbCtx.fillStyle = '#9bbc0f';
-        gbCtx.font = '8px monospace';
-        gbCtx.fillText(state.currentMap.toUpperCase(), 6, 139);
+        gbCtx.font = 'bold 8px monospace';
+        gbCtx.fillText('LOADING ENHANCED', 24, 64);
+        gbCtx.fillText('POKEMON RED ROM...', 20, 80);
       }
     }
 

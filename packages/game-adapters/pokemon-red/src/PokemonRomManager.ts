@@ -16,13 +16,23 @@ export class PokemonRomManager extends EventEmitter {
       path.join(cwd, 'roms')
     ];
 
+    // Priority 1: Check for pokemon_red_enhanced.gb
     for (const dir of candidateDirs) {
-      if (fs.existsSync(dir)) {
-        return path.join(dir, 'pokemon_red.gb');
+      const enhancedPath = path.join(dir, 'pokemon_red_enhanced.gb');
+      if (fs.existsSync(enhancedPath)) {
+        return enhancedPath;
       }
     }
 
-    return path.join(cwd, 'data', 'roms', 'pokemon_red.gb');
+    // Priority 2: Check for pokemon_red.gb
+    for (const dir of candidateDirs) {
+      const redPath = path.join(dir, 'pokemon_red.gb');
+      if (fs.existsSync(redPath)) {
+        return redPath;
+      }
+    }
+
+    return path.join(cwd, 'data', 'roms', 'pokemon_red_enhanced.gb');
   }
 
   public static async ensureRom(customPath?: string, allowDownload = true): Promise<{ path: string; buffer: Buffer; title: string }> {
