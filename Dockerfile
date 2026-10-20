@@ -24,6 +24,7 @@ COPY apps/dashboard/package.json ./apps/dashboard/
 COPY packages/shared/package.json ./packages/shared/
 COPY packages/game-adapters/adapter-sdk/package.json ./packages/game-adapters/adapter-sdk/
 COPY packages/game-adapters/subway-surfers/package.json ./packages/game-adapters/subway-surfers/
+COPY packages/game-adapters/pokemon-red/package.json ./packages/game-adapters/pokemon-red/
 COPY packages/streaming/package.json ./packages/streaming/
 COPY packages/capture/package.json ./packages/capture/
 COPY packages/overlay/package.json ./packages/overlay/
