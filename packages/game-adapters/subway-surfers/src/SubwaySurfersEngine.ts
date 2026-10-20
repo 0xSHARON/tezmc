@@ -402,7 +402,7 @@ export class SubwaySurfersEngine extends EventEmitter {
 
   private startVisualServer(port: number): void {
     this.httpServer = http.createServer((req, res) => {
-      if (req.url === '/state') {
+      if (req.url === '/state' || req.url === '/subway/state' || req.url?.includes('state')) {
         res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
         res.end(JSON.stringify({
           state: this.state,
@@ -462,8 +462,14 @@ export class SubwaySurfersEngine extends EventEmitter {
 
     async function pollState() {
       try {
-        const res = await fetch('/state');
-        if (res.ok) serverState = await res.json();
+        const stateUrl = window.location.pathname.endsWith('/') ? 'state' : window.location.pathname + '/state';
+        const res = await fetch(stateUrl);
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.state) {
+            serverState = data;
+          }
+        }
       } catch (e) {}
       setTimeout(pollState, 100);
     }
