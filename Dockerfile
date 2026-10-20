@@ -23,6 +23,7 @@ COPY apps/dashboard/package.json ./apps/dashboard/
 COPY packages/shared/package.json ./packages/shared/
 COPY packages/game-adapters/adapter-sdk/package.json ./packages/game-adapters/adapter-sdk/
 COPY packages/game-adapters/minecraft-java/package.json ./packages/game-adapters/minecraft-java/
+COPY packages/game-adapters/subway-surfers/package.json ./packages/game-adapters/subway-surfers/
 COPY packages/streaming/package.json ./packages/streaming/
 COPY packages/capture/package.json ./packages/capture/
 COPY packages/overlay/package.json ./packages/overlay/
@@ -42,6 +43,6 @@ RUN pnpm run build
 
 ENV NODE_ENV=production
 ENV PORT=3000
-EXPOSE 3000 5173 3007
+EXPOSE 3000 5173 3007 3008
 
 CMD ["node", "apps/api/dist/index.js"]

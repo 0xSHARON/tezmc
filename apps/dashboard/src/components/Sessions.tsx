@@ -20,7 +20,7 @@ export const Sessions: React.FC<SessionsProps> = ({
   onResume,
   onStop
 }) => {
-  const [selectedGame, setSelectedGame] = useState('minecraft-java-mock');
+  const [selectedGame, setSelectedGame] = useState('subway-surfers');
 
   return (
     <div className="space-y-6">
@@ -33,23 +33,38 @@ export const Sessions: React.FC<SessionsProps> = ({
           <select
             value={selectedGame}
             onChange={(e) => setSelectedGame(e.target.value)}
-            className="bg-slate-900 border border-slate-700 text-sm rounded-lg px-3 py-2 text-white focus:outline-none focus:border-sky-500"
+            className="bg-slate-900 border border-slate-700 text-sm rounded-lg px-3 py-2 text-white focus:outline-none focus:border-sky-500 font-mono"
           >
+            <option value="subway-surfers">Subway Surfers (Autonomous 24/7 AI Runner)</option>
             <option value="minecraft-java-mock">Minecraft Java (Simulated Autonomous Harness)</option>
             <option value="minecraft-java">Minecraft Java Edition (Mineflayer + 3D Viewer)</option>
           </select>
 
           <button
-            onClick={() => onStart(selectedGame, {
-              host: 'localhost',
-              port: 25565,
-              version: '1.20.1',
-              botName: 'AutoPlayBot',
-              exploreRadius: 50,
-              enableViewer: true
-            })}
+            onClick={() => {
+              if (selectedGame === 'subway-surfers') {
+                onStart(selectedGame, {
+                  botName: 'JakeSurfer',
+                  mode: 'autonomous_ai',
+                  difficulty: 'normal',
+                  autoRevive: true,
+                  viewerPort: 3008,
+                  enableViewer: true,
+                  startingMultiplier: 10
+                });
+              } else {
+                onStart(selectedGame, {
+                  host: 'localhost',
+                  port: 25565,
+                  version: '1.20.1',
+                  botName: 'AutoPlayBot',
+                  exploreRadius: 50,
+                  enableViewer: true
+                });
+              }
+            }}
             disabled={sessionState === 'RUNNING' || sessionState === 'STARTING_GAME'}
-            className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 disabled:text-slate-600 text-white rounded-lg text-sm font-semibold transition-colors"
+            className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 disabled:text-slate-600 text-white rounded-lg text-sm font-semibold transition-colors cursor-pointer"
           >
             <Play className="w-4 h-4" /> Start Session
           </button>

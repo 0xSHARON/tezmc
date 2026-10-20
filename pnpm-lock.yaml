@@ -4,6 +4,10 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  '@types/react': ^18.3.18
+  '@types/react-dom': ^18.3.5
+
 importers:
 
   .:
@@ -35,6 +39,9 @@ importers:
       '@autoplay/adapter-sdk':
         specifier: workspace:*
         version: link:../../packages/game-adapters/adapter-sdk
+      '@autoplay/adapter-subway-surfers':
+        specifier: workspace:*
+        version: link:../../packages/game-adapters/subway-surfers
       '@autoplay/capture':
         specifier: workspace:*
         version: link:../../packages/capture
@@ -211,6 +218,25 @@ importers:
       vec3:
         specifier: ^0.1.10
         version: 0.1.10
+      zod:
+        specifier: ^3.24.1
+        version: 3.25.76
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.5
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
+  packages/game-adapters/subway-surfers:
+    dependencies:
+      '@autoplay/adapter-sdk':
+        specifier: workspace:*
+        version: link:../adapter-sdk
+      '@autoplay/shared':
+        specifier: workspace:*
+        version: link:../../shared
       zod:
         specifier: ^3.24.1
         version: 3.25.76
@@ -1147,7 +1173,7 @@ packages:
   '@types/react-dom@18.3.7':
     resolution: {integrity: sha512-MEe3UeoENYVFXzoXEWsvcpg6ZvlrFNlOQ7EOsvhI3CfAXwzPfO8Qwuxd40nepsYKqyyVQnTdEfv68q91yLcKrQ==}
     peerDependencies:
-      '@types/react': ^18.0.0
+      '@types/react': ^18.3.18
 
   '@types/react@18.3.31':
     resolution: {integrity: sha512-vfEqpXTvwT91yhmwdfouStN2hSKwTvyRs8qpLfADyrq/kxDw0hZM7Wk9Ug1FELj8hIby+S/+kQCSRFF32nv2Qw==}

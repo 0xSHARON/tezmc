@@ -6,6 +6,7 @@ import { Server as SocketIOServer } from 'socket.io';
 import { SOCKET_EVENTS, SecretRedactor } from '@autoplay/shared';
 import { AdapterRegistry } from '@autoplay/adapter-sdk';
 import { MinecraftAdapter, MockMinecraftAdapter } from '@autoplay/adapter-minecraft-java';
+import { SubwaySurfersAdapter } from '@autoplay/adapter-subway-surfers';
 import { StreamingManager } from '@autoplay/streaming';
 import { SessionStateMachine } from '@autoplay/session-manager';
 import { MonitoringService } from '@autoplay/monitoring';
@@ -41,8 +42,10 @@ async function bootstrap() {
   const registry = AdapterRegistry.getInstance();
   const minecraftAdapter = new MinecraftAdapter();
   const mockMinecraftAdapter = new MockMinecraftAdapter();
+  const subwaySurfersAdapter = new SubwaySurfersAdapter();
   registry.register(minecraftAdapter);
   registry.register(mockMinecraftAdapter);
+  registry.register(subwaySurfersAdapter);
 
   // Streaming & Session Manager
   const streamingManager = new StreamingManager({

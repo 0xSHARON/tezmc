@@ -22,6 +22,34 @@ export const Adapters: React.FC<AdaptersProps> = ({ adapters, onValidate }) => {
 
   const [validationMsg, setValidationMsg] = useState<{ valid: boolean; text: string } | null>(null);
 
+  const handleSelectAdapter = (id: string) => {
+    setSelectedAdapter(id);
+    setValidationMsg(null);
+    if (id === 'subway-surfers') {
+      setConfigJson(JSON.stringify({
+        botName: 'JakeSurfer',
+        mode: 'autonomous_ai',
+        difficulty: 'normal',
+        autoRevive: true,
+        viewerPort: 3008,
+        enableViewer: true,
+        startingMultiplier: 10
+      }, null, 2));
+    } else {
+      setConfigJson(JSON.stringify({
+        host: 'localhost',
+        port: 25565,
+        version: '1.20.1',
+        botName: 'AutoPlayBot',
+        auth: 'offline',
+        exploreRadius: 50,
+        viewerPort: 3007,
+        enableViewer: true,
+        objective: 'bounded_exploration'
+      }, null, 2));
+    }
+  };
+
   const handleValidation = async () => {
     try {
       const parsed = JSON.parse(configJson);
@@ -45,7 +73,7 @@ export const Adapters: React.FC<AdaptersProps> = ({ adapters, onValidate }) => {
         {adapters.map((adapter) => (
           <div
             key={adapter.id}
-            onClick={() => setSelectedAdapter(adapter.id)}
+            onClick={() => handleSelectAdapter(adapter.id)}
             className={`cursor-pointer bg-surface border rounded-xl p-5 transition-all ${
               selectedAdapter === adapter.id ? 'border-sky-500 shadow-md shadow-sky-500/10' : 'border-border hover:border-slate-700'
             }`}

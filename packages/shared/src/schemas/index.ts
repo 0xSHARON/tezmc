@@ -45,6 +45,18 @@ export const MinecraftConfigSchema = z.object({
 
 export type MinecraftConfig = z.infer<typeof MinecraftConfigSchema>;
 
+export const SubwaySurfersConfigSchema = z.object({
+  botName: z.string().min(1).max(24).default('JakeSurfer'),
+  mode: z.enum(['autonomous_ai', 'chat_democracy', 'hybrid']).default('autonomous_ai'),
+  difficulty: z.enum(['casual', 'normal', 'hardcore']).default('normal'),
+  autoRevive: z.boolean().default(true),
+  viewerPort: z.number().int().min(1024).max(65535).default(3008),
+  enableViewer: z.boolean().default(true),
+  startingMultiplier: z.number().int().min(1).max(30).default(10)
+});
+
+export type SubwaySurfersConfig = z.infer<typeof SubwaySurfersConfigSchema>;
+
 export const StreamConfigSchema = z.object({
   provider: z.enum(['ffmpeg', 'obs']).default('ffmpeg'),
   rtmpUrl: z.string().url().or(z.string().regex(/^rtmps?:\/\/.+/)),
