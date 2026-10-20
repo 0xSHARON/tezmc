@@ -192,6 +192,7 @@ export class FFmpegProvider extends EventEmitter implements StreamingProvider {
     if (source.type === 'x11') {
       args.push(
         '-f', 'x11grab',
+        '-draw_mouse', '0',
         '-video_size', `${config.width}x${config.height}`,
         '-framerate', `${config.fps}`,
         '-i', source.displayOrDevice

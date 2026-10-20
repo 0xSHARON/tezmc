@@ -984,7 +984,7 @@ export class SubwaySurfersEngine extends EventEmitter {
         // COINS
         ctx.font = 'bold 24px sans-serif';
         ctx.fillStyle = '#facc15';
-        ctx.fillText('🪙 ' + (state.coins || 0), 820, 62);
+        ctx.fillText('COINS: ' + (state.coins || 0), 820, 62);
 
         // LIVE BROADCAST PILL
         ctx.fillStyle = '#ef4444';
