@@ -1,11 +1,12 @@
 version: '3.8'
+name: tezmc
 
 services:
-  autoplay-core:
+  tezmc-core:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: autoplay-ai-core
+    container_name: tezmc-core
     restart: unless-stopped
     ports:
       - "3000:3000"
@@ -18,19 +19,24 @@ services:
     volumes:
       - autoplay_data:/app/data
       - autoplay_logs:/app/logs
+    labels:
+      - "com.tezmc.description=TEZMC Autonomous Gaming & Live Streaming Core"
 
   dashboard:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: autoplay-ai-dashboard
+    container_name: tezmc-dashboard
     restart: unless-stopped
     ports:
       - "5173:5173"
     command: ["pnpm", "--filter", "@autoplay/dashboard", "run", "dev", "--host"]
     depends_on:
-      - autoplay-core
+      - tezmc-core
+    labels:
+      - "com.tezmc.description=TEZMC Gaming Operations Dashboard"
 
 volumes:
+  # Preserved volume names for seamless data continuity
   autoplay_data:
   autoplay_logs:

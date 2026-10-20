@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-echo "=== AutoPlay AI: Ubuntu Setup and Prerequisite Installer ==="
+echo "=== TEZMC: Ubuntu Setup and Prerequisite Installer ==="
 
 # 1. Update APT & install base tools
 sudo apt-get update

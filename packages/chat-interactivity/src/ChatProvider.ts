@@ -31,7 +31,7 @@ export class MockChatProvider extends EventEmitter implements IChatProvider {
     '!status',
     'Stream quality looks super crisp today 1080p60!',
     '!explore 75',
-    'AutoPlay AI is really smooth!',
+    'TEZMC is really smooth!',
     '!jump',
     'Check out that cave entrance on the right!'
   ];

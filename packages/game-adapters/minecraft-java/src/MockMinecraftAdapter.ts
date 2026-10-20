@@ -8,7 +8,7 @@ import {
 
 export class MockMinecraftAdapter extends BaseAdapter {
   public readonly id = 'minecraft-java-mock';
-  public readonly displayName = 'Minecraft Java (Simulated Autonomous Harness)';
+  public readonly displayName = 'Minecraft Java (TEZMC Autonomous Engine)';
   public readonly capabilities: GameAdapterCapabilities = {
     supportsHeadlessVisuals: true,
     supportsRealRendering: true,
@@ -112,7 +112,7 @@ export class MockMinecraftAdapter extends BaseAdapter {
         this.posY += 1;
         setTimeout(() => { this.posY = Math.max(64, this.posY - 1); }, 400);
         this.emit('bot_jump', { sender, timestamp: Date.now() });
-        return { success: true, message: `${this.config?.botName || 'AutoPlayBot'} jumped on command from @${sender}!` };
+        return { success: true, message: `${this.config?.botName || 'TezmcBot'} jumped on command from @${sender}!` };
 
       case 'coords':
         return { success: true, message: `Current Position: X=${this.posX}, Y=${this.posY}, Z=${this.posZ}` };
@@ -125,7 +125,7 @@ export class MockMinecraftAdapter extends BaseAdapter {
 
       case 'say':
         const text = args.join(' ');
-        return { success: true, message: `[${this.config?.botName || 'AutoPlayBot'}]: ${text || 'Hello stream!'}` };
+        return { success: true, message: `[${this.config?.botName || 'TezmcBot'}]: ${text || 'Hello stream!'}` };
 
       case 'explore':
         const newRadius = args[0] ? parseInt(args[0], 10) : 50;

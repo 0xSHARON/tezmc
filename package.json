@@ -1,9 +1,9 @@
 {
-  "name": "autoplay-ai",
+  "name": "tezmc",
   "version": "1.0.0",
   "type": "module",
   "private": true,
-  "description": "AutoPlay AI — Autonomous Game Bot & Live-Streaming Production Platform",
+  "description": "TEZMC — Autonomous Gaming & Live Streaming Platform",
   "scripts": {
     "build": "pnpm -r run build",
     "dev": "pnpm --filter @autoplay/api run dev",
@@ -20,7 +20,7 @@
     "obs",
     "game-streaming"
   ],
-  "author": "AutoPlay AI Core Team",
+  "author": "TEZMC Core Team",
   "license": "MIT",
   "devDependencies": {
     "@types/express": "^5.0.6",

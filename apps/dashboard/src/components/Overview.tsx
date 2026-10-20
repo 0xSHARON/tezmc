@@ -180,10 +180,10 @@ export const Overview: React.FC<OverviewProps> = ({
         </div>
 
         {/* Live Metrics Graph */}
-        <div className="lg:col-span-2 bg-surface border border-border rounded-xl p-6 shadow-sm flex flex-col justify-between">
+        <div className="lg:col-span-2 bg-[#0f111a] border border-border rounded-xl p-6 shadow-sm flex flex-col justify-between">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-sky-400" />
+              <TrendingUp className="w-5 h-5 text-emerald-400" />
               <h3 className="font-semibold text-white">Live Bitrate & Encoder Throughput</h3>
             </div>
             <span className="text-xs font-mono text-slate-400">RTMP Target: 2500 kbps</span>
@@ -194,16 +194,16 @@ export const Overview: React.FC<OverviewProps> = ({
               <AreaChart data={chartData}>
                 <defs>
                   <linearGradient id="bitrateGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#38bdf8" stopOpacity={0.4}/>
-                    <stop offset="95%" stopColor="#38bdf8" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.35}/>
+                    <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
                 <XAxis dataKey="time" stroke="#64748b" fontSize={12} />
                 <YAxis stroke="#64748b" fontSize={12} domain={[2000, 3000]} />
                 <Tooltip
-                  contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '8px' }}
+                  contentStyle={{ backgroundColor: '#090a0f', borderColor: '#1e2235', borderRadius: '8px' }}
                 />
-                <Area type="monotone" dataKey="bitrate" stroke="#38bdf8" fillOpacity={1} fill="url(#bitrateGrad)" />
+                <Area type="monotone" dataKey="bitrate" stroke="#10b981" fillOpacity={1} fill="url(#bitrateGrad)" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -211,11 +211,11 @@ export const Overview: React.FC<OverviewProps> = ({
       </div>
 
       {/* Terminal / Real-time Logs Card */}
-      <div className="bg-surface border border-border rounded-xl p-5 shadow-sm">
+      <div className="bg-[#0f111a] border border-border rounded-xl p-5 shadow-sm">
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-semibold text-white text-sm flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-            Real-time Autonomous Event Log (Redacted)
+            Real-time TEZMC Autonomous Event Log (Redacted)
           </h3>
           <span className="text-xs text-slate-500 font-mono">Pino Structured Stream</span>
         </div>

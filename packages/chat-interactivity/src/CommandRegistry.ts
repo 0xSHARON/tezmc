@@ -52,7 +52,7 @@ export class CommandRegistry {
     if (command === 'about') {
       return {
         success: true,
-        message: 'AutoPlay AI: Autonomous 24/7 AI-driven live-streaming platform.'
+        message: 'TEZMC: Autonomous 24/7 gaming platform that controls game-specific bots, captures real gameplay, and streams to YouTube Live.'
       };
     }
 

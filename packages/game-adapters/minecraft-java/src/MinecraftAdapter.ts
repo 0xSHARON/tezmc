@@ -290,7 +290,7 @@ export class MinecraftAdapter extends BaseAdapter {
       case 'jump':
         this.bot.setControlState('jump', true);
         setTimeout(() => this.bot?.setControlState('jump', false), 350);
-        return { success: true, message: `${this.config?.botName || 'AutoPlayBot'} jumped on command from @${sender}!` };
+        return { success: true, message: `${this.config?.botName || 'TezmcBot'} jumped on command from @${sender}!` };
 
       case 'coords':
         const pos = this.bot.entity.position.floored();

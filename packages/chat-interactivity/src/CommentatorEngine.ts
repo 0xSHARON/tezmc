@@ -20,7 +20,7 @@ export class CommentatorEngine extends EventEmitter {
 
   constructor(options: CommentatorOptions = {}) {
     super();
-    this.speakerName = options.speakerName || 'AutoPlay AI Narrator';
+    this.speakerName = options.speakerName || 'TEZMC AI Narrator';
     this.enabled = options.enabled ?? true;
     this.minIntervalSeconds = options.minIntervalSeconds ?? 20;
   }

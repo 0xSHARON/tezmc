@@ -4,10 +4,10 @@ import { Database, Shield, Bell, Cpu, Server } from 'lucide-react';
 export const Settings: React.FC = () => {
   return (
     <div className="space-y-6">
-      <div className="bg-surface border border-border rounded-xl p-6 shadow-sm">
-        <h2 className="text-xl font-bold text-white mb-1">Platform Settings & Resource Thresholds</h2>
+      <div className="bg-[#0f111a] border border-border rounded-xl p-6 shadow-sm">
+        <h2 className="text-xl font-bold text-white mb-1">TEZMC Platform Settings & Guardrails</h2>
         <p className="text-sm text-slate-400 mb-6">
-          Global guardrails for unattended 24/7 autonomous broadcast operations.
+          Global operating limits and persistence configurations for unattended 24/7 TEZMC broadcasts.
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

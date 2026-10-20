@@ -53,6 +53,9 @@ importers:
       '@autoplay/capture':
         specifier: workspace:*
         version: link:../../packages/capture
+      '@autoplay/chat-interactivity':
+        specifier: workspace:*
+        version: link:../../packages/chat-interactivity
       '@autoplay/monitoring':
         specifier: workspace:*
         version: link:../../services/monitoring

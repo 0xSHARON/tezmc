@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="tezmc-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981"/>
+      <stop offset="100%" stop-color="#059669"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="#090a0f"/>
+  <rect x="2" y="2" width="60" height="60" rx="12" fill="none" stroke="#1f2438" stroke-width="2"/>
+  <!-- Gaming polygon monogram -->
+  <path d="M14 18 H50 V26 H36 V48 H28 V26 H14 Z" fill="url(#tezmc-grad)"/>
+  <!-- Dot / accent -->
+  <circle cx="48" cy="46" r="4" fill="#34d399"/>
+</svg>

@@ -1,0 +1,25 @@
+[Unit]
+Description=TEZMC Autonomous Gaming & Live Streaming Platform
+Documentation=https://github.com/tezmc/tezmc
+After=network.target
+
+[Service]
+Type=simple
+User=tezmc
+WorkingDirectory=/opt/tezmc
+Environment=NODE_ENV=production
+EnvironmentFile=-/opt/tezmc/.env
+EnvironmentFile=-/opt/autoplay-ai/.env
+ExecStart=/usr/bin/node apps/api/dist/index.js
+Restart=always
+RestartSec=10
+LimitNOFILE=65535
+
+# Security sandboxing
+ProtectSystem=full
+ProtectHome=true
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
+Alias=autoplay-ai.service

@@ -56,6 +56,9 @@ export function createApiRouter(
     const isDegraded = sessionState === 'RECOVERING' || streamStatus === 'RECONNECTING';
 
     res.json({
+      service: 'TEZMC Control API',
+      product: 'TEZMC',
+      tagline: 'Autonomous Gaming & Live Streaming',
       status: isDegraded ? 'DEGRADED' : 'OK',
       timestamp: new Date().toISOString(),
       uptimeSeconds: process.uptime(),

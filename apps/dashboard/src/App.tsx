@@ -219,27 +219,27 @@ export default function App() {
   return (
     <div className="flex h-screen bg-background text-slate-100 overflow-hidden font-sans">
       {/* Sidebar Navigation */}
-      <aside className="w-64 bg-slate-950 border-r border-border flex flex-col justify-between p-4">
+      <aside className="w-64 bg-[#0c0e15] border-r border-border flex flex-col justify-between p-4">
         <div>
-          {/* Logo */}
+          {/* TEZMC Brand Header */}
           <div className="flex items-center gap-3 px-3 py-4 mb-6 border-b border-border">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center font-black text-white text-lg shadow-lg shadow-sky-500/20">
-              A
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-700 flex items-center justify-center font-black text-white text-lg shadow-lg shadow-emerald-500/20">
+              T
             </div>
             <div>
-              <h1 className="font-bold text-white text-base leading-tight">AutoPlay AI</h1>
-              <span className="text-[11px] text-sky-400 font-mono">v1.0 Production</span>
+              <h1 className="font-extrabold text-white text-base tracking-wider leading-tight">TEZMC</h1>
+              <span className="text-[10px] text-emerald-400 font-mono tracking-tight uppercase">Autonomous Gaming</span>
             </div>
           </div>
 
           {/* Navigation Links */}
-          <nav className="space-y-1">
+          <nav className="space-y-1.5">
             <button
               onClick={() => setActiveTab('overview')}
               className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all ${
                 activeTab === 'overview'
-                  ? 'bg-sky-500/15 text-sky-400 border border-sky-500/30'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-900'
+                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+                  : 'text-slate-400 hover:text-white hover:bg-[#131622]'
               }`}
             >
               <LayoutDashboard className="w-4 h-4" /> Overview
@@ -249,8 +249,8 @@ export default function App() {
               onClick={() => setActiveTab('adapters')}
               className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all ${
                 activeTab === 'adapters'
-                  ? 'bg-sky-500/15 text-sky-400 border border-sky-500/30'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-900'
+                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+                  : 'text-slate-400 hover:text-white hover:bg-[#131622]'
               }`}
             >
               <Gamepad2 className="w-4 h-4" /> Game Adapters
@@ -260,8 +260,8 @@ export default function App() {
               onClick={() => setActiveTab('sessions')}
               className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all ${
                 activeTab === 'sessions'
-                  ? 'bg-sky-500/15 text-sky-400 border border-sky-500/30'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-900'
+                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+                  : 'text-slate-400 hover:text-white hover:bg-[#131622]'
               }`}
             >
               <PlaySquare className="w-4 h-4" /> Sessions
@@ -271,8 +271,8 @@ export default function App() {
               onClick={() => setActiveTab('streaming')}
               className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all ${
                 activeTab === 'streaming'
-                  ? 'bg-sky-500/15 text-sky-400 border border-sky-500/30'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-900'
+                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+                  : 'text-slate-400 hover:text-white hover:bg-[#131622]'
               }`}
             >
               <Radio className="w-4 h-4" /> Streaming
@@ -282,8 +282,8 @@ export default function App() {
               onClick={() => setActiveTab('scheduler')}
               className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all ${
                 activeTab === 'scheduler'
-                  ? 'bg-sky-500/15 text-sky-400 border border-sky-500/30'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-900'
+                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+                  : 'text-slate-400 hover:text-white hover:bg-[#131622]'
               }`}
             >
               <Calendar className="w-4 h-4" /> Scheduler
@@ -293,8 +293,8 @@ export default function App() {
               onClick={() => setActiveTab('settings')}
               className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all ${
                 activeTab === 'settings'
-                  ? 'bg-sky-500/15 text-sky-400 border border-sky-500/30'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-900'
+                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+                  : 'text-slate-400 hover:text-white hover:bg-[#131622]'
               }`}
             >
               <SettingsIcon className="w-4 h-4" /> Settings
@@ -308,26 +308,26 @@ export default function App() {
             <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
             Host: Ubuntu 24.04 LTS
           </div>
-          <p>Autonomous 24/7 Agent Daemon</p>
+          <p>TEZMC Daemon &bull; 24/7 Autonomous</p>
         </div>
       </aside>
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col overflow-hidden">
         {/* Top Header */}
-        <header className="h-16 border-b border-border bg-slate-950/60 backdrop-blur-md px-6 flex items-center justify-between">
+        <header className="h-16 border-b border-border bg-[#0c0e15]/80 backdrop-blur-md px-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <span className="text-sm font-semibold text-white uppercase tracking-wider">
+            <span className="text-sm font-bold text-white uppercase tracking-wider">
               {activeTab}
             </span>
             <span className="text-slate-600">/</span>
-            <span className="text-xs font-mono text-slate-400">Node v25 LTS</span>
+            <span className="text-xs font-mono text-emerald-400">TEZMC Live Ops</span>
           </div>
 
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 px-3 py-1 bg-slate-900 border border-slate-800 rounded-full text-xs">
+            <div className="flex items-center gap-2 px-3 py-1 bg-[#121520] border border-border rounded-full text-xs">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span className="text-slate-300 font-mono">API: OK</span>
+              <span className="text-slate-300 font-mono">CORE: ONLINE</span>
             </div>
           </div>
         </header>

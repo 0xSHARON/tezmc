@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-echo "=== Starting AutoPlay AI Services ==="
+echo "=== Starting TEZMC Services ==="
 
 # 1. Start Xvfb if in Linux headless environment and display not set
 if [[ "$(uname)" == "Linux" ]] && [ -z "${DISPLAY:-}" ]; then

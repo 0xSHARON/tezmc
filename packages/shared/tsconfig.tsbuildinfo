@@ -1,1 +1,1 @@
-{"root":["./src/index.ts","./src/events/index.ts","./src/schemas/index.ts","./src/types/index.ts","./src/utils/redact.ts"],"version":"5.9.3"}
+{"root":["./src/brand.ts","./src/index.ts","./src/events/index.ts","./src/schemas/index.ts","./src/types/index.ts","./src/utils/redact.ts"],"version":"5.9.3"}

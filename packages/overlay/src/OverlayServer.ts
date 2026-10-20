@@ -4,7 +4,7 @@ export class OverlayServer {
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>AutoPlay AI Live Stream Overlay</title>
+  <title>TEZMC Live Stream Overlay</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -21,12 +21,12 @@ export class OverlayServer {
       position: absolute;
       top: 24px;
       left: 24px;
-      background: rgba(15, 23, 42, 0.85);
+      background: rgba(9, 10, 15, 0.88);
       backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.12);
       border-radius: 14px;
       padding: 14px 20px;
-      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6);
       display: flex;
       flex-direction: column;
       gap: 8px;
@@ -35,9 +35,9 @@ export class OverlayServer {
     .brand-title {
       font-size: 13px;
       font-weight: 800;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.1em;
       text-transform: uppercase;
-      color: #38bdf8;
+      color: #10b981;
       display: flex;
       align-items: center;
       gap: 8px;
@@ -239,7 +239,7 @@ export class OverlayServer {
   <div class="hud-top-left">
     <div class="brand-title">
       <div class="pulse-dot"></div>
-      AutoPlay AI &bull; Live Broadcast
+      TEZMC &bull; Live Broadcast
     </div>
     <div class="status-row">
       <span>Game:</span>
@@ -264,7 +264,7 @@ export class OverlayServer {
     <div class="avatar-icon">&#129302;</div>
     <div class="commentary-content">
       <div class="commentary-header">
-        <span class="speaker-name" id="speaker-name">AutoPlay AI Narrator</span>
+        <span class="speaker-name" id="speaker-name">TEZMC AI Narrator</span>
         <div class="equalizer">
           <div class="eq-bar"></div>
           <div class="eq-bar"></div>
@@ -295,7 +295,7 @@ export class OverlayServer {
 
   <!-- Bottom Right Watermark -->
   <div class="hud-bottom-right">
-    Autonomous Stream Powered by AutoPlay AI &bull; 24/7 Unattended
+    Autonomous Stream Powered by TEZMC &bull; 24/7 Unattended
   </div>
 
   <script>

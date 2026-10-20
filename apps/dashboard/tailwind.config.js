@@ -8,12 +8,13 @@ export default {
   theme: {
     extend: {
       colors: {
-        background: '#090d16',
-        surface: '#111827',
-        surfaceHover: '#1f2937',
-        border: '#1f293d',
-        primary: '#38bdf8',
-        primaryHover: '#0ea5e9',
+        background: '#090a0f',
+        surface: '#0f111a',
+        surfaceHover: '#171a26',
+        card: '#121520',
+        border: '#1e2235',
+        primary: '#10b981',
+        primaryHover: '#059669',
         accent: '#10b981',
         warning: '#f59e0b',
         danger: '#ef4444'

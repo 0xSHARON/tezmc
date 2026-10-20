@@ -34,7 +34,7 @@ export const MinecraftConfigSchema = z.object({
   host: z.string().min(1).default('localhost'),
   port: z.number().int().min(1).max(65535).default(25565),
   version: z.string().default('1.20.1'),
-  botName: z.string().min(1).max(16).default('AutoPlayBot'),
+  botName: z.string().min(1).max(16).default('TezmcBot'),
   auth: z.enum(['offline', 'microsoft']).default('offline'),
   exploreRadius: z.number().int().min(5).max(1000).default(50),
   viewDistance: z.number().int().min(2).max(16).default(6),
@@ -104,7 +104,7 @@ export type ChatMessage = z.infer<typeof ChatMessageSchema>;
 
 export const CommentaryItemSchema = z.object({
   id: z.string(),
-  speaker: z.string().default('AutoPlay AI'),
+  speaker: z.string().default('TEZMC AI'),
   text: z.string(),
   mood: z.enum(['calm', 'excited', 'cautious', 'curious']).default('calm'),
   timestamp: z.number()

@@ -170,7 +170,7 @@ async function bootstrap() {
     await chatManager.stop();
     await sessionMachine.stop(`System received ${signal}`);
     server.close(() => {
-      logger.info('AutoPlay AI API HTTP & WebSocket server closed.');
+      logger.info('TEZMC Control API HTTP & WebSocket server closed.');
       process.exit(0);
     });
   };
@@ -179,12 +179,12 @@ async function bootstrap() {
   process.on('SIGINT', () => handleShutdown('SIGINT'));
 
   server.listen(PORT, HOST, () => {
-    logger.info(`AutoPlay AI Control API listening on http://${HOST}:${PORT}`);
+    logger.info(`TEZMC Control API listening on http://${HOST}:${PORT}`);
     logger.info(`Overlay URL available at http://${HOST}:${PORT}/overlay`);
   });
 }
 
 bootstrap().catch((err) => {
-  logger.fatal({ err }, 'Failed to bootstrap AutoPlay AI API');
+  logger.fatal({ err }, 'Failed to bootstrap TEZMC API');
   process.exit(1);
 });
