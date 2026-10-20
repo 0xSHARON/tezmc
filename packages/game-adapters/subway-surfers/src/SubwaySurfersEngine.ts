@@ -415,15 +415,15 @@ export class SubwaySurfersEngine extends EventEmitter {
 
       // Serve 60FPS High-Octane Subway Surfers HTML5 Canvas Stream
       res.writeHead(200, { 'Content-Type': 'text/html' });
-      res.end(this.getCanvasHtml());
+      res.end(SubwaySurfersEngine.getCanvasHtml());
     });
 
-    this.httpServer.listen(port, () => {
-      this.emit('log', { level: 'info', message: `Subway Surfers 60FPS Visual Streamer listening on port ${port}` });
+    this.httpServer.listen(port, '0.0.0.0', () => {
+      this.emit('log', { level: 'info', message: `Subway Surfers 60FPS Visual Streamer listening on 0.0.0.0:${port}` });
     });
   }
 
-  private getCanvasHtml(): string {
+  public static getCanvasHtml(): string {
     return `<!DOCTYPE html>
 <html lang="en">
 <head>

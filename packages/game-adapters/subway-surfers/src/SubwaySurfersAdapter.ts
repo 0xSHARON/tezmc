@@ -25,11 +25,37 @@ export class SubwaySurfersAdapter extends BaseAdapter {
   private viewerPort = 3008;
   private startTime = 0;
 
+  public async initializeStandbyViewer(port = 3008): Promise<void> {
+    if (this.engine) return;
+    const defaultCfg: SubwaySurfersConfig = {
+      startingMultiplier: 10,
+      autoPlay: true,
+      enableViewer: true,
+      viewerPort: port,
+      speedIncreaseIntervalSeconds: 30,
+      maxSpeedKmh: 95
+    };
+    this.config = defaultCfg;
+    this.viewerPort = port;
+    const engine = new SubwaySurfersEngine(defaultCfg);
+    this.engine = engine;
+    await engine.start();
+  }
+
+  public getEngine(): SubwaySurfersEngine | null {
+    return this.engine;
+  }
+
   public async validateConfig(config: unknown): Promise<void> {
     SubwaySurfersConfigSchema.parse(config);
   }
 
   public async start(rawConfig: unknown): Promise<void> {
+    if (this.engine) {
+      await this.engine.stop();
+      this.engine = null;
+    }
+
     const config = SubwaySurfersConfigSchema.parse(rawConfig);
     this.config = config;
     this.viewerPort = config.viewerPort;
@@ -89,6 +115,8 @@ export class SubwaySurfersAdapter extends BaseAdapter {
       await this.engine.stop();
       this.engine = null;
     }
+    // Maintain 24/7 web viewer on port 3008
+    await this.initializeStandbyViewer(this.viewerPort);
     this.status = {
       state: 'DISCONNECTED',
       health: 0

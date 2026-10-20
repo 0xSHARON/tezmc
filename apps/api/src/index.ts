@@ -6,7 +6,7 @@ import { Server as SocketIOServer } from 'socket.io';
 import { SOCKET_EVENTS, SecretRedactor } from '@autoplay/shared';
 import { AdapterRegistry } from '@autoplay/adapter-sdk';
 import { MinecraftAdapter, MockMinecraftAdapter } from '@autoplay/adapter-minecraft-java';
-import { SubwaySurfersAdapter } from '@autoplay/adapter-subway-surfers';
+import { SubwaySurfersAdapter, SubwaySurfersEngine } from '@autoplay/adapter-subway-surfers';
 import { StreamingManager } from '@autoplay/streaming';
 import { SessionStateMachine } from '@autoplay/session-manager';
 import { MonitoringService } from '@autoplay/monitoring';
@@ -46,6 +46,11 @@ async function bootstrap() {
   registry.register(minecraftAdapter);
   registry.register(mockMinecraftAdapter);
   registry.register(subwaySurfersAdapter);
+
+  // Initialize 24/7 standby Subway Surfers visual streamer on 0.0.0.0:3008
+  await subwaySurfersAdapter.initializeStandbyViewer(3008).catch((err) => {
+    logger.warn({ err }, 'Failed to bind Subway Surfers standby viewer on port 3008');
+  });
 
   // Streaming & Session Manager
   const streamingManager = new StreamingManager({
@@ -147,6 +152,27 @@ async function bootstrap() {
   app.get('/overlay', (_req, res) => {
     res.setHeader('Content-Type', 'text/html');
     res.send(OverlayServer.getHtml());
+  });
+
+  // Subway Surfers Visual Streamer Endpoint on Control API (port 3000)
+  app.get(['/subway', '/subway/', '/subway/*'], (_req, res) => {
+    res.setHeader('Content-Type', 'text/html');
+    res.send(SubwaySurfersEngine.getCanvasHtml());
+  });
+
+  app.get('/subway/state', (_req, res) => {
+    const engine = subwaySurfersAdapter.getEngine();
+    if (engine) {
+      res.json({
+        state: engine.getState(),
+        lastAction: 'AUTONOMOUS RUNNER ACTIVE'
+      });
+    } else {
+      res.json({
+        state: { score: 0, coins: 0, multiplier: 10, speedKmh: 45 },
+        lastAction: 'STANDBY'
+      });
+    }
   });
 
   // Socket.IO Connection Handler
