@@ -38,4 +38,10 @@ export interface PokemonRedState {
   romLoaded: boolean;
   romTitle: string;
   fps: number;
+  currentObjective?: string;
+  badgeCount?: number;
+  inBattle?: boolean;
+  inDialogue?: boolean;
+  coordinates?: { x: number; y: number };
+  partyHpRatio?: number;
 }

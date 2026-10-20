@@ -1,0 +1,45 @@
+{
+  "agent_name": "HierarchicalAgent",
+  "total_episodes": 3,
+  "avg_steps_per_episode": 300.0,
+  "avg_reward_per_episode": -13.95,
+  "unique_maps_reached": 1,
+  "maps_visited": [
+    0
+  ],
+  "total_stuck_episodes": 876,
+  "dialogue_steps": 0,
+  "battle_steps": 149,
+  "episodes": [
+    {
+      "episode": 1,
+      "steps": 300,
+      "reward": -13.95,
+      "stuck_count": 292,
+      "final_map": 0,
+      "final_x": 0,
+      "final_y": 0,
+      "duration_seconds": 4.13
+    },
+    {
+      "episode": 2,
+      "steps": 300,
+      "reward": -13.95,
+      "stuck_count": 292,
+      "final_map": 0,
+      "final_x": 0,
+      "final_y": 0,
+      "duration_seconds": 3.91
+    },
+    {
+      "episode": 3,
+      "steps": 300,
+      "reward": -13.95,
+      "stuck_count": 292,
+      "final_map": 0,
+      "final_x": 0,
+      "final_y": 0,
+      "duration_seconds": 4.34
+    }
+  ]
+}

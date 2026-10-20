@@ -1,0 +1,586 @@
+{
+  "OBJ_GAME_START": {
+    "id": "OBJ_GAME_START",
+    "name": "Start New Game and Set Names",
+    "category": "INTRO",
+    "prerequisites": [],
+    "status": "completed",
+    "reward_description": "Player name RED and Rival name BLUE registered in WRAM",
+    "evidence": {
+      "player": "RED",
+      "rival": "RED"
+    },
+    "retry_count": 0,
+    "last_failure_reason": "",
+    "completed_at": 1792539210.119858
+  },
+  "OBJ_BEDROOM_EXIT": {
+    "id": "OBJ_BEDROOM_EXIT",
+    "name": "Descend Stairs from Bedroom (2F to 1F)",
+    "category": "INTRO",
+    "prerequisites": [
+      "OBJ_GAME_START"
+    ],
+    "status": "completed",
+    "reward_description": "Enter Mom's Living Room (Map 0x25)",
+    "evidence": {
+      "map": "Pallet Town"
+    },
+    "retry_count": 0,
+    "last_failure_reason": "",
+    "completed_at": 1792539210.119869
+  },
+  "OBJ_HOUSE_EXIT": {
+    "id": "OBJ_HOUSE_EXIT",
+    "name": "Exit House to Pallet Town",
+    "category": "INTRO",
+    "prerequisites": [
+      "OBJ_BEDROOM_EXIT"
+    ],
+    "status": "completed",
+    "reward_description": "Step into Pallet Town (Map 0x00)",
+    "evidence": {
+      "pos": [
+        0,
+        0
+      ]
+    },
+    "retry_count": 0,
+    "last_failure_reason": "",
+    "completed_at": 1792539210.1198726
+  },
+  "OBJ_OAK_ENCOUNTER": {
+    "id": "OBJ_OAK_ENCOUNTER",
+    "name": "Trigger Oak Encounter in North Grass",
+    "category": "INTRO",
+    "prerequisites": [
+      "OBJ_HOUSE_EXIT"
+    ],
+    "status": "completed",
+    "reward_description": "Oak escorts player to lab",
+    "evidence": {
+      "north_grass_reached": true
+    },
+    "retry_count": 0,
+    "last_failure_reason": "",
+    "completed_at": 1792539210.119875
+  },
+  "OBJ_GET_STARTER": {
+    "id": "OBJ_GET_STARTER",
+    "name": "Receive Starter Pok\u00e9mon in Oak's Lab",
+    "category": "EARLY_GAME",
+    "prerequisites": [
+      "OBJ_OAK_ENCOUNTER"
+    ],
+    "status": "available",
+    "reward_description": "Party count == 1, Starter Pok\u00e9mon acquired",
+    "evidence": {},
+    "retry_count": 0,
+    "last_failure_reason": "",
+    "completed_at": null
+  },
+  "OBJ_RIVAL_BATTLE_1": {
+    "id": "OBJ_RIVAL_BATTLE_1",
+    "name": "Defeat Rival in Oak's Lab",
+    "category": "EARLY_GAME",
+    "prerequisites": [
+      "OBJ_GET_STARTER"
+    ],
+    "status": "locked",
+    "reward_description": "Win first battle, gain trainer EXP and prize money",
+    "evidence": {},
+    "retry_count": 0,
+    "last_failure_reason": "",
+    "completed_at": null
+  },
+  "OBJ_ROUTE_1_NORTH": {
+    "id": "OBJ_ROUTE_1_NORTH",
+    "name": "Traverse Route 1 to Viridian City",
+    "category": "EARLY_GAME",
+    "prerequisites": [
+      "OBJ_RIVAL_BATTLE_1"
+    ],
+    "status": "locked",
+    "reward_description": "Reach Viridian City (Map 0x01)",
+    "evidence": {},
+    "retry_count": 0,
+    "last_failure_reason": "",
+    "completed_at": null
+  },
+  "OBJ_VIRIDIAN_MART_PARCEL": {
+    "id": "OBJ_VIRIDIAN_MART_PARCEL",
+    "name": "Collect Oak's Parcel from Viridian Mart",
+    "category": "EARLY_GAME",
+    "prerequisites": [
+      "OBJ_ROUTE_1_NORTH"
+    ],
+    "status": "locked",
+    "reward_description": "Oak's Parcel (Item 0x46) in bag",
+    "evidence": {},
+    "retry_count": 0,
+    "last_failure_reason": "",
+    "completed_at": null
+  },
+  "OBJ_DELIVER_PARCEL": {
+    "id": "OBJ_DELIVER_PARCEL",
+    "name": "Deliver Parcel to Oak & Obtain Pok\u00e9dex",
+    "category": "EARLY_GAME",
+    "prerequisites": [
+      "OBJ_VIRIDIAN_MART_PARCEL"
+    ],
+    "status": "locked",
+    "reward_description": "Pok\u00e9dex unlocked and 5 Pok\u00e9 Balls awarded",
+    "evidence": {},
+    "retry_count": 0,
+    "last_failure_reason": "",
+    "completed_at": null
+  },
+  "OBJ_ROUTE_2_GATE": {
+    "id": "OBJ_ROUTE_2_GATE",
+    "name": "Travel North to Route 2 Viridian Forest Gate",
+    "category": "EARLY_GAME",
+    "prerequisites": [
+      "OBJ_DELIVER_PARCEL"
+    ],
+    "status": "locked",
+    "reward_description": "Access Viridian Forest South Gate (Map 0x32)",
+    "evidence": {},
+    "retry_count": 0,
+    "last_failure_reason": "",
+    "completed_at": null
+  },
+  "OBJ_VIRIDIAN_FOREST": {
+    "id": "OBJ_VIRIDIAN_FOREST",
+    "name": "Traverse Viridian Forest to Pewter City",
+    "category": "EARLY_GAME",
+    "prerequisites": [
+      "OBJ_ROUTE_2_GATE"
+    ],
+    "status": "locked",
+    "reward_description": "Exit forest north into Pewter City (Map 0x02)",
+    "evidence": {},
+    "retry_count": 0,
+    "last_failure_reason": "",
+    "completed_at": null
+  },
+  "OBJ_BADGE_1_BOULDER": {
+    "id": "OBJ_BADGE_1_BOULDER",
+    "name": "Defeat Gym Leader Brock for Boulder Badge",
+    "category": "GYM",
+    "prerequisites": [
+      "OBJ_VIRIDIAN_FOREST"
+    ],
+    "status": "locked",
+    "reward_description": "Boulder Badge (wObtainedBadges bit 0) & TM34 Bide",
+    "evidence": {},
+    "retry_count": 0,
+    "last_failure_reason": "",
+    "completed_at": null
+  },
+  "OBJ_ROUTE_3_TRAINERS": {
+    "id": "OBJ_ROUTE_3_TRAINERS",
+    "name": "Traverse Route 3 to Mt. Moon",
+    "category": "STORY",
+    "prerequisites": [
+      "OBJ_BADGE_1_BOULDER"
+    ],
+    "status": "locked",
+    "reward_description": "Reach Mt. Moon exterior Pokecenter",
+    "evidence": {},
+    "retry_count": 0,
+    "last_failure_reason": "",
+    "completed_at": null
+  },
+  "OBJ_MT_MOON_PASSAGE": {
+    "id": "OBJ_MT_MOON_PASSAGE",
+    "name": "Explore Mt. Moon and Defeat Team Rocket",
+    "category": "STORY",
+    "prerequisites": [
+      "OBJ_ROUTE_3_TRAINERS"
+    ],
+    "status": "locked",
+    "reward_description": "Obtain prehistoric Fossil and exit to Route 4",
+    "evidence": {},
+    "retry_count": 0,
+    "last_failure_reason": "",
+    "completed_at": null
+  },
+  "OBJ_CERULEAN_ARRIVAL": {
+    "id": "OBJ_CERULEAN_ARRIVAL",
+    "name": "Reach Cerulean City",
+    "category": "STORY",
+    "prerequisites": [
+      "OBJ_MT_MOON_PASSAGE"
+    ],
+    "status": "locked",
+    "reward_description": "Enter Cerulean City (Map 0x03) and heal at Center",
+    "evidence": {},
+    "retry_count": 0,
+    "last_failure_reason": "",
+    "completed_at": null
+  },
+  "OBJ_BADGE_2_CASCADE": {
+    "id": "OBJ_BADGE_2_CASCADE",
+    "name": "Defeat Gym Leader Misty for Cascade Badge",
+    "category": "GYM",
+    "prerequisites": [
+      "OBJ_CERULEAN_ARRIVAL"
+    ],
+    "status": "locked",
+    "reward_description": "Cascade Badge (wObtainedBadges bit 1) & TM11 BubbleBeam",
+    "evidence": {},
+    "retry_count": 0,
+    "last_failure_reason": "",
+    "completed_at": null
+  },
+  "OBJ_NUGGET_BRIDGE_BILL": {
+    "id": "OBJ_NUGGET_BRIDGE_BILL",
+    "name": "Defeat Nugget Bridge & Visit Bill at Sea Cottage",
+    "category": "STORY",
+    "prerequisites": [
+      "OBJ_BADGE_2_CASCADE"
+    ],
+    "status": "locked",
+    "reward_description": "Obtain S.S. Ticket (Item 0x3F)",
+    "evidence": {},
+    "retry_count": 0,
+    "last_failure_reason": "",
+    "completed_at": null
+  },
+  "OBJ_VERMILION_ARRIVAL": {
+    "id": "OBJ_VERMILION_ARRIVAL",
+    "name": "Traverse Route 5 & 6 to Vermilion City",
+    "category": "STORY",
+    "prerequisites": [
+      "OBJ_NUGGET_BRIDGE_BILL"
+    ],
+    "status": "locked",
+    "reward_description": "Reach Vermilion City (Map 0x05)",
+    "evidence": {},
+    "retry_count": 0,
+    "last_failure_reason": "",
+    "completed_at": null
+  },
+  "OBJ_SS_ANNE_HM01_CUT": {
+    "id": "OBJ_SS_ANNE_HM01_CUT",
+    "name": "Board S.S. Anne and Obtain HM01 Cut",
+    "category": "STORY",
+    "prerequisites": [
+      "OBJ_VERMILION_ARRIVAL"
+    ],
+    "status": "locked",
+    "reward_description": "HM01 Cut in bag, Captain cured of seasickness",
+    "evidence": {},
+    "retry_count": 0,
+    "last_failure_reason": "",
+    "completed_at": null
+  },
+  "OBJ_BADGE_3_THUNDER": {
+    "id": "OBJ_BADGE_3_THUNDER",
+    "name": "Defeat Gym Leader Lt. Surge for Thunder Badge",
+    "category": "GYM",
+    "prerequisites": [
+      "OBJ_SS_ANNE_HM01_CUT"
+    ],
+    "status": "locked",
+    "reward_description": "Thunder Badge (wObtainedBadges bit 2) & TM24 Thunderbolt",
+    "evidence": {},
+    "retry_count": 0,
+    "last_failure_reason": "",
+    "completed_at": null
+  },
+  "OBJ_ROCK_TUNNEL": {
+    "id": "OBJ_ROCK_TUNNEL",
+    "name": "Navigate Rock Tunnel to Lavender Town",
+    "category": "STORY",
+    "prerequisites": [
+      "OBJ_BADGE_3_THUNDER"
+    ],
+    "status": "locked",
+    "reward_description": "Reach Lavender Town (Map 0x04)",
+    "evidence": {},
+    "retry_count": 0,
+    "last_failure_reason": "",
+    "completed_at": null
+  },
+  "OBJ_CELADON_ARRIVAL": {
+    "id": "OBJ_CELADON_ARRIVAL",
+    "name": "Traverse Route 7 to Celadon City",
+    "category": "STORY",
+    "prerequisites": [
+      "OBJ_ROCK_TUNNEL"
+    ],
+    "status": "locked",
+    "reward_description": "Reach Celadon City (Map 0x06)",
+    "evidence": {},
+    "retry_count": 0,
+    "last_failure_reason": "",
+    "completed_at": null
+  },
+  "OBJ_BADGE_4_RAINBOW": {
+    "id": "OBJ_BADGE_4_RAINBOW",
+    "name": "Defeat Gym Leader Erika for Rainbow Badge",
+    "category": "GYM",
+    "prerequisites": [
+      "OBJ_CELADON_ARRIVAL"
+    ],
+    "status": "locked",
+    "reward_description": "Rainbow Badge (wObtainedBadges bit 3) & TM21 Mega Drain",
+    "evidence": {},
+    "retry_count": 0,
+    "last_failure_reason": "",
+    "completed_at": null
+  },
+  "OBJ_ROCKET_GAMECORNER_HIDEOUT": {
+    "id": "OBJ_ROCKET_GAMECORNER_HIDEOUT",
+    "name": "Infiltrate Rocket Game Corner & Defeat Giovanni 1",
+    "category": "STORY",
+    "prerequisites": [
+      "OBJ_BADGE_4_RAINBOW"
+    ],
+    "status": "locked",
+    "reward_description": "Obtain Silph Scope (Item 0x48)",
+    "evidence": {},
+    "retry_count": 0,
+    "last_failure_reason": "",
+    "completed_at": null
+  },
+  "OBJ_POKEMON_TOWER_RESCUE": {
+    "id": "OBJ_POKEMON_TOWER_RESCUE",
+    "name": "Rescue Mr. Fuji in Pok\u00e9mon Tower",
+    "category": "STORY",
+    "prerequisites": [
+      "OBJ_ROCKET_GAMECORNER_HIDEOUT"
+    ],
+    "status": "locked",
+    "reward_description": "Calm Ghost Marowak and receive Pok\u00e9 Flute",
+    "evidence": {},
+    "retry_count": 0,
+    "last_failure_reason": "",
+    "completed_at": null
+  },
+  "OBJ_FUCHSIA_ARRIVAL": {
+    "id": "OBJ_FUCHSIA_ARRIVAL",
+    "name": "Ride Cycling Road (Route 17) to Fuchsia City",
+    "category": "STORY",
+    "prerequisites": [
+      "OBJ_POKEMON_TOWER_RESCUE"
+    ],
+    "status": "locked",
+    "reward_description": "Reach Fuchsia City (Map 0x07)",
+    "evidence": {},
+    "retry_count": 0,
+    "last_failure_reason": "",
+    "completed_at": null
+  },
+  "OBJ_SAFARI_ZONE_HMs": {
+    "id": "OBJ_SAFARI_ZONE_HMs",
+    "name": "Collect HM03 Surf and HM04 Strength in Safari Zone",
+    "category": "STORY",
+    "prerequisites": [
+      "OBJ_FUCHSIA_ARRIVAL"
+    ],
+    "status": "locked",
+    "reward_description": "HM03 Surf and HM04 Strength in bag",
+    "evidence": {},
+    "retry_count": 0,
+    "last_failure_reason": "",
+    "completed_at": null
+  },
+  "OBJ_BADGE_5_SOUL": {
+    "id": "OBJ_BADGE_5_SOUL",
+    "name": "Defeat Gym Leader Koga for Soul Badge",
+    "category": "GYM",
+    "prerequisites": [
+      "OBJ_SAFARI_ZONE_HMs"
+    ],
+    "status": "locked",
+    "reward_description": "Soul Badge (wObtainedBadges bit 4) & TM06 Toxic",
+    "evidence": {},
+    "retry_count": 0,
+    "last_failure_reason": "",
+    "completed_at": null
+  },
+  "OBJ_SILPH_CO_LIBERATION": {
+    "id": "OBJ_SILPH_CO_LIBERATION",
+    "name": "Liberate Silph Co. & Defeat Giovanni 2 in Saffron",
+    "category": "STORY",
+    "prerequisites": [
+      "OBJ_BADGE_5_SOUL"
+    ],
+    "status": "locked",
+    "reward_description": "President gives Master Ball, Saffron City liberated",
+    "evidence": {},
+    "retry_count": 0,
+    "last_failure_reason": "",
+    "completed_at": null
+  },
+  "OBJ_BADGE_6_MARSH": {
+    "id": "OBJ_BADGE_6_MARSH",
+    "name": "Defeat Gym Leader Sabrina for Marsh Badge",
+    "category": "GYM",
+    "prerequisites": [
+      "OBJ_SILPH_CO_LIBERATION"
+    ],
+    "status": "locked",
+    "reward_description": "Marsh Badge (wObtainedBadges bit 5) & TM46 Psywave",
+    "evidence": {},
+    "retry_count": 0,
+    "last_failure_reason": "",
+    "completed_at": null
+  },
+  "OBJ_CINNABAR_MANSION": {
+    "id": "OBJ_CINNABAR_MANSION",
+    "name": "Surf to Cinnabar Island & Retrieve Secret Key",
+    "category": "STORY",
+    "prerequisites": [
+      "OBJ_BADGE_6_MARSH"
+    ],
+    "status": "locked",
+    "reward_description": "Secret Key obtained from Pok\u00e9mon Mansion",
+    "evidence": {},
+    "retry_count": 0,
+    "last_failure_reason": "",
+    "completed_at": null
+  },
+  "OBJ_BADGE_7_VOLCANO": {
+    "id": "OBJ_BADGE_7_VOLCANO",
+    "name": "Defeat Gym Leader Blaine for Volcano Badge",
+    "category": "GYM",
+    "prerequisites": [
+      "OBJ_CINNABAR_MANSION"
+    ],
+    "status": "locked",
+    "reward_description": "Volcano Badge (wObtainedBadges bit 6) & TM38 Fire Blast",
+    "evidence": {},
+    "retry_count": 0,
+    "last_failure_reason": "",
+    "completed_at": null
+  },
+  "OBJ_BADGE_8_EARTH": {
+    "id": "OBJ_BADGE_8_EARTH",
+    "name": "Defeat Gym Leader Giovanni for Earth Badge (All 8 Badges)",
+    "category": "GYM",
+    "prerequisites": [
+      "OBJ_BADGE_7_VOLCANO"
+    ],
+    "status": "locked",
+    "reward_description": "Earth Badge (wObtainedBadges bit 7) & TM27 Fissure",
+    "evidence": {},
+    "retry_count": 0,
+    "last_failure_reason": "",
+    "completed_at": null
+  },
+  "OBJ_VICTORY_ROAD": {
+    "id": "OBJ_VICTORY_ROAD",
+    "name": "Pass Badge Checkpoints & Traverse Victory Road",
+    "category": "STORY",
+    "prerequisites": [
+      "OBJ_BADGE_8_EARTH"
+    ],
+    "status": "locked",
+    "reward_description": "Arrive at Indigo Plateau Pok\u00e9mon League (Map 0x09)",
+    "evidence": {},
+    "retry_count": 0,
+    "last_failure_reason": "",
+    "completed_at": null
+  },
+  "OBJ_ELITE_FOUR_LORELEI": {
+    "id": "OBJ_ELITE_FOUR_LORELEI",
+    "name": "Defeat Elite Four Lorelei (Ice)",
+    "category": "ELITE_FOUR",
+    "prerequisites": [
+      "OBJ_VICTORY_ROAD"
+    ],
+    "status": "locked",
+    "reward_description": "Defeat Lorelei's Ice Pok\u00e9mon",
+    "evidence": {},
+    "retry_count": 0,
+    "last_failure_reason": "",
+    "completed_at": null
+  },
+  "OBJ_ELITE_FOUR_BRUNO": {
+    "id": "OBJ_ELITE_FOUR_BRUNO",
+    "name": "Defeat Elite Four Bruno (Fighting/Rock)",
+    "category": "ELITE_FOUR",
+    "prerequisites": [
+      "OBJ_ELITE_FOUR_LORELEI"
+    ],
+    "status": "locked",
+    "reward_description": "Defeat Bruno's Fighting Pok\u00e9mon",
+    "evidence": {},
+    "retry_count": 0,
+    "last_failure_reason": "",
+    "completed_at": null
+  },
+  "OBJ_ELITE_FOUR_AGATHA": {
+    "id": "OBJ_ELITE_FOUR_AGATHA",
+    "name": "Defeat Elite Four Agatha (Ghost/Poison)",
+    "category": "ELITE_FOUR",
+    "prerequisites": [
+      "OBJ_ELITE_FOUR_BRUNO"
+    ],
+    "status": "locked",
+    "reward_description": "Defeat Agatha's Ghost Pok\u00e9mon",
+    "evidence": {},
+    "retry_count": 0,
+    "last_failure_reason": "",
+    "completed_at": null
+  },
+  "OBJ_ELITE_FOUR_LANCE": {
+    "id": "OBJ_ELITE_FOUR_LANCE",
+    "name": "Defeat Elite Four Lance (Dragon)",
+    "category": "ELITE_FOUR",
+    "prerequisites": [
+      "OBJ_ELITE_FOUR_AGATHA"
+    ],
+    "status": "locked",
+    "reward_description": "Defeat Lance's Dragon Pok\u00e9mon",
+    "evidence": {},
+    "retry_count": 0,
+    "last_failure_reason": "",
+    "completed_at": null
+  },
+  "OBJ_CHAMPION_VICTORY": {
+    "id": "OBJ_CHAMPION_VICTORY",
+    "name": "Defeat Champion Blue in Final Championship Battle",
+    "category": "ELITE_FOUR",
+    "prerequisites": [
+      "OBJ_ELITE_FOUR_LANCE"
+    ],
+    "status": "locked",
+    "reward_description": "Defeat the Pok\u00e9mon League Champion",
+    "evidence": {},
+    "retry_count": 0,
+    "last_failure_reason": "",
+    "completed_at": null
+  },
+  "OBJ_HALL_OF_FAME": {
+    "id": "OBJ_HALL_OF_FAME",
+    "name": "Induct Team into Hall of Fame & Complete Main Game",
+    "category": "ELITE_FOUR",
+    "prerequisites": [
+      "OBJ_CHAMPION_VICTORY"
+    ],
+    "status": "locked",
+    "reward_description": "Oak registers party into Hall of Fame, endgame credits",
+    "evidence": {},
+    "retry_count": 0,
+    "last_failure_reason": "",
+    "completed_at": null
+  },
+  "OBJ_POST_GAME_CERULEAN_CAVE": {
+    "id": "OBJ_POST_GAME_CERULEAN_CAVE",
+    "name": "Explore Cerulean Cave & Catch Mewtwo",
+    "category": "POST_GAME",
+    "prerequisites": [
+      "OBJ_HALL_OF_FAME"
+    ],
+    "status": "locked",
+    "reward_description": "Defeat and catch Mewtwo (Species 0x83)",
+    "evidence": {},
+    "retry_count": 0,
+    "last_failure_reason": "",
+    "completed_at": null
+  }
+}

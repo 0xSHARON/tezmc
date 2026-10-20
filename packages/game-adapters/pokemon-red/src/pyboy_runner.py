@@ -59,9 +59,19 @@ MAP_NAMES = {
     0x26: "Player's House 2F",
     0x27: "Rival's House",
     0x28: "Oak's Lab",
+    0x18: "Viridian Pokecenter",
     0x29: "Viridian Pokecenter",
     0x2A: "Viridian Pokemart",
-    0x33: "Mt. Moon",
+    0x32: "Viridian Forest Gate",
+    0x33: "Viridian Forest",
+    0x34: "Pewter Museum 1F",
+    0x35: "Pewter Gym (Brock)",
+    0x3A: "Pewter Pokecenter",
+    0x3B: "Mt. Moon 1F",
+    0x3C: "Mt. Moon B1F",
+    0x3D: "Mt. Moon B2F",
+    0x3E: "Cerulean Gym (Misty)",
+    0x40: "Cerulean Pokecenter",
 }
 
 BADGE_NAMES = [
@@ -212,21 +222,52 @@ class EmulationServer:
         # Check if in intro/naming sequence
         in_intro = (player_name_byte in (0, 0x50) or rival_name_byte in (0, 0x50))
 
+        # Check inventory for Oak's Parcel (Item ID 0x46)
+        num_items = min(20, mem[0xD31D])
+        has_parcel = any(mem[0xD31E + (i * 2)] == 0x46 for i in range(num_items))
+        pokedex_obtained = bool(mem[0xD2F7] > 0 or (mem[0xD74E] & 0x01))
+
+        # Check Party HP Ratio
+        lead_curr_hp = (mem[ADDR_PARTY_DATA + 1] << 8) | mem[ADDR_PARTY_DATA + 2] if party_count > 0 else 20
+        lead_max_hp = (mem[ADDR_PARTY_DATA + 34] << 8) | mem[ADDR_PARTY_DATA + 35] if party_count > 0 else 20
+        hp_ratio = lead_curr_hp / max(1, lead_max_hp)
+
+        badges_byte = mem[ADDR_BADGES]
+        boulder_badge = bool(badges_byte & 1)
+
         btn = None
 
-        # 2. Battle State: Auto-fight and select moves
+        # 2. Battle State: Auto-fight, select moves, retreat on critical HP
         if in_battle != 0:
             self.was_dialogue = False
-            btn = "a"
+            self.battle_tick = getattr(self, "battle_tick", 0) + 1
+
+            # In wild battles, if health is critical (< 20%), attempt to RUN
+            if in_battle == 1 and hp_ratio < 0.20:
+                run_phase = self.battle_tick % 4
+                if run_phase == 0:
+                    btn = "down"
+                elif run_phase == 1:
+                    btn = "right"
+                elif run_phase == 2:
+                    btn = "a"
+                else:
+                    btn = "b"
+            else:
+                # Combat attack cycle: advance dialogue if open, otherwise press A for FIGHT -> Move 1
+                if font_loaded != 0:
+                    btn = "a" if (self.battle_tick % 2 == 0) else "b"
+                else:
+                    btn = "a"
 
         # 3. Text box or Menu State
         elif font_loaded != 0:
             self.was_dialogue = True
             if in_intro:
                 # Title screen or name selection
-                if self.copilot_tick % 240 == 0:
+                if self.copilot_tick % 180 == 0:
                     btn = "start"
-                elif self.stuck_counter > 25 and self.copilot_tick % 40 == 0:
+                elif self.stuck_counter > 20 and self.copilot_tick % 30 == 0:
                     btn = "down" # Move cursor from "NEW NAME" to "RED" / "BLUE"
                 else:
                     btn = "a"
@@ -234,9 +275,9 @@ class EmulationServer:
                 # Starter nickname prompt -> press B to decline nickname
                 self.starter_picked = True
                 btn = "b"
-            elif self.stuck_counter > 40:
+            elif self.stuck_counter > 30:
                 # Menu stuck watchdog -> alternate B (dismiss) and A
-                btn = "b" if (self.copilot_tick % 32 == 0) else "a"
+                btn = "b" if (self.copilot_tick % 20 == 0) else "a"
             else:
                 btn = "a"
 
@@ -251,45 +292,70 @@ class EmulationServer:
                 btn = "down"
 
         # 5. Anti-Stuck in Overworld
-        elif self.stuck_counter > 18:
+        elif self.stuck_counter > 12:
             jiggle = ["down", "right", "left", "up"]
-            btn = jiggle[(self.stuck_counter // 5) % 4]
-            if self.stuck_counter > 40 and self.stuck_counter % 12 == 0:
+            btn = jiggle[(self.stuck_counter // 4) % 4]
+            if self.stuck_counter > 35 and self.stuck_counter % 8 == 0:
                 btn = "b"
 
-        # 6. Overworld Map Navigation
+        # 6. Pokémon Center Healing (Viridian: 0x18, 0x29, Pewter: 0x3A, Cerulean: 0x40)
+        elif map_id in (0x18, 0x29, 0x3A, 0x40):
+            if hp_ratio < 0.99:
+                if x < 3:
+                    btn = "right"
+                elif x > 3:
+                    btn = "left"
+                elif y > 4:
+                    btn = "up"
+                else:
+                    btn = "a" # Talk to nurse
+            else:
+                # Healed: step down to exit mat
+                btn = "down"
+
+        # 7. Overworld Map Progression & Waypoints
         elif map_id == 0x26:
             # Red's House 2F (Bedroom) -> Stairs at (7, 1)
             if y < 7 and x < 6:
-                btn = "down" # Step away from TV/SNES and bed
+                btn = "down"
             elif x < 7:
                 btn = "right"
             elif y > 1:
                 btn = "up"
             else:
-                btn = "right" # Step onto stairs
+                btn = "right"
 
         elif map_id == 0x25:
-            # Red's House 1F (Living Room) -> Door at (3, 7) or (2, 7)
+            # Red's House 1F (Living Room) -> Door at (3, 7)
             if x > 3:
                 btn = "left"
             elif y < 7:
                 btn = "down"
             else:
-                btn = "down" # Step on exit door mat
+                btn = "down"
 
         elif map_id == 0x00:
             # Pallet Town
             if party_count == 0:
-                # Head North towards tall grass at (10, 0) to trigger Prof Oak
+                # Walk North to trigger Oak in tall grass
                 if x < 10:
                     btn = "right"
                 elif x > 11:
                     btn = "left"
                 else:
-                    btn = "up" # Walk into grass: Oak cutscene triggers!
+                    btn = "up"
+            elif has_parcel and not pokedex_obtained:
+                # Enter Oak's Lab to deliver parcel at (12, 11)
+                if x < 12:
+                    btn = "right"
+                elif x > 12:
+                    btn = "left"
+                elif y < 11:
+                    btn = "down"
+                else:
+                    btn = "up"
             else:
-                # Starter obtained! Head North into Route 1
+                # Head North into Route 1
                 if x < 10:
                     btn = "right"
                 elif x > 10:
@@ -300,7 +366,7 @@ class EmulationServer:
         elif map_id == 0x28:
             # Oak's Lab
             if party_count == 0:
-                # Walk to Charmander's Pokeball at (6, 3)
+                # Walk to Pokeball table at (6, 3)
                 if y > 4:
                     btn = "up"
                 elif y < 4:
@@ -310,29 +376,188 @@ class EmulationServer:
                 elif x > 6:
                     btn = "left"
                 else:
-                    btn = "a" # Inspect Pokeball & receive starter!
+                    btn = "a"
+            elif has_parcel and not pokedex_obtained:
+                # Approach Oak at (5, 2) to deliver parcel
+                if y > 3:
+                    btn = "up"
+                elif x < 5:
+                    btn = "right"
+                elif x > 5:
+                    btn = "left"
+                else:
+                    btn = "a"
             else:
-                # Starter obtained: walk down to exit door at (4, 11) / (5, 11)
+                # Walk down to exit door at (5, 11)
                 if x < 4:
                     btn = "right"
                 elif x > 5:
                     btn = "left"
                 else:
-                    btn = "down" # Rival battle triggers on the way
+                    btn = "down"
 
         elif map_id == 0x0C:
-            # Route 1 -> Walk North towards Viridian City
-            if x < 8:
+            # Route 1
+            if has_parcel and not pokedex_obtained:
+                # Return South to Pallet Town
+                if x < 8:
+                    btn = "right"
+                elif x > 12:
+                    btn = "left"
+                else:
+                    btn = "down"
+            else:
+                # Head North to Viridian City
+                if x < 8:
+                    btn = "right"
+                elif x > 13:
+                    btn = "left"
+                else:
+                    btn = "up"
+
+        elif map_id == 0x01:
+            # Viridian City
+            if hp_ratio < 0.50:
+                # Enter Pokecenter at (13, 25)
+                if x < 13:
+                    btn = "right"
+                elif x > 13:
+                    btn = "left"
+                elif y < 25:
+                    btn = "down"
+                elif y > 25:
+                    btn = "up"
+                else:
+                    btn = "up"
+            elif not has_parcel and not pokedex_obtained:
+                # Enter Viridian Pokémart at (29, 19)
+                if x < 29:
+                    btn = "right"
+                elif x > 29:
+                    btn = "left"
+                elif y < 19:
+                    btn = "down"
+                elif y > 19:
+                    btn = "up"
+                else:
+                    btn = "up"
+            elif has_parcel and not pokedex_obtained:
+                # Exit South to Route 1 at (21, 35)
+                if x < 21:
+                    btn = "right"
+                elif x > 21:
+                    btn = "left"
+                else:
+                    btn = "down"
+            else:
+                # Pokedex obtained: Head North to Route 2 at (18, 0)
+                if x < 18:
+                    btn = "right"
+                elif x > 18:
+                    btn = "left"
+                else:
+                    btn = "up"
+
+        elif map_id == 0x2A:
+            # Viridian Pokémart
+            if not has_parcel:
+                # Approach clerk at counter (3, 5)
+                if y > 5:
+                    btn = "up"
+                elif x > 3:
+                    btn = "left"
+                else:
+                    btn = "a" # Receive Oak's Parcel
+            else:
+                # Exit Mart down at (3, 7)
+                btn = "down"
+
+        elif map_id == 0x0D:
+            # Route 2 -> Head North to Viridian Forest South Gate (0x32) at (3, 43)
+            if x < 3:
                 btn = "right"
-            elif x > 13:
+            elif x > 4:
                 btn = "left"
             else:
                 btn = "up"
 
+        elif map_id == 0x32:
+            # Viridian Forest South Gate -> Walk up through gate
+            btn = "up"
+
+        elif map_id == 0x33:
+            # Viridian Forest Maze
+            # Navigate towards North exit at (1, 0)
+            if y > 35:
+                # First corridor: walk up
+                if x < 17:
+                    btn = "right"
+                elif x > 18:
+                    btn = "left"
+                else:
+                    btn = "up"
+            elif y > 20 and x < 24:
+                # Turn right through clearing
+                btn = "right"
+            elif y > 12:
+                # Walk up past trainer
+                btn = "up"
+            elif x > 2:
+                # Turn left towards west path
+                btn = "left"
+            else:
+                # Walk North to gate
+                btn = "up"
+
+        elif map_id == 0x02:
+            # Pewter City
+            if hp_ratio < 0.70:
+                # Pokecenter at (13, 17)
+                if x < 13:
+                    btn = "right"
+                elif x > 13:
+                    btn = "left"
+                elif y > 17:
+                    btn = "up"
+                else:
+                    btn = "up"
+            elif not boulder_badge:
+                # Enter Pewter Gym at (16, 17)
+                if x < 16:
+                    btn = "right"
+                elif x > 16:
+                    btn = "left"
+                elif y < 17:
+                    btn = "down"
+                elif y > 17:
+                    btn = "up"
+                else:
+                    btn = "up"
+            else:
+                # Boulder Badge acquired: Head East into Route 3 at (39, 17)
+                if y < 17:
+                    btn = "down"
+                elif y > 18:
+                    btn = "up"
+                else:
+                    btn = "right"
+
+        elif map_id == 0x35:
+            # Pewter Gym (Brock)
+            # Walk up to Brock at (4, 3)
+            if x < 4:
+                btn = "right"
+            elif x > 4:
+                btn = "left"
+            elif y > 3:
+                btn = "up"
+            else:
+                btn = "a" # Battle Brock!
+
         else:
-            # Default exploration
+            # Default exploration with periodic directional sweep
             dirs = ["up", "down", "left", "right"]
-            btn = dirs[(self.copilot_tick // 40) % 4]
+            btn = dirs[(self.copilot_tick // 30) % 4]
 
         if btn:
             self.pyboy.button(btn, 10)
@@ -409,16 +634,60 @@ class EmulationServer:
                     "spriteIndex": (i % 6) + 1
                 })
 
-            if not party:
-                party = [{"name": "CHARMANDER", "level": 5, "currentHp": 20, "maxHp": 20, "status": "OK", "spriteIndex": 1}]
+            # Evaluate dynamic canonical storyline objective
+            num_items = min(20, mem[0xD31D])
+            has_parcel = any(mem[0xD31E + (i * 2)] == 0x46 for i in range(num_items))
+            pokedex_obtained = bool(mem[0xD2F7] > 0 or (mem[0xD74E] & 0x01))
+            in_battle = bool(mem[ADDR_BATTLE] != 0)
+            font_loaded = bool(mem[ADDR_FONT_LOADED] & 1)
+            player_x = mem[ADDR_PLAYER_X]
+            player_y = mem[ADDR_PLAYER_Y]
+
+            if party_count == 0:
+                current_objective = "Select Starter Pokémon in Oak's Lab"
+            elif not has_parcel and not pokedex_obtained:
+                current_objective = "Retrieve Oak's Parcel from Viridian Mart"
+            elif has_parcel and not pokedex_obtained:
+                current_objective = "Deliver Oak's Parcel to Prof. Oak in Pallet Town"
+            elif not (badges_byte & 1):
+                current_objective = "Defeat Gym Leader Brock for Boulder Badge"
+            elif not (badges_byte & 2):
+                current_objective = "Defeat Gym Leader Misty for Cascade Badge"
+            elif not (badges_byte & 4):
+                current_objective = "Defeat Gym Leader Lt. Surge for Thunder Badge"
+            elif not (badges_byte & 8):
+                current_objective = "Defeat Gym Leader Erika for Rainbow Badge"
+            elif not (badges_byte & 16):
+                current_objective = "Defeat Gym Leader Koga for Soul Badge"
+            elif not (badges_byte & 32):
+                current_objective = "Defeat Gym Leader Sabrina for Marsh Badge"
+            elif not (badges_byte & 64):
+                current_objective = "Defeat Gym Leader Blaine for Volcano Badge"
+            elif not (badges_byte & 128):
+                current_objective = "Defeat Gym Leader Giovanni for Earth Badge"
+            else:
+                current_objective = "Challenge Elite Four & Champion at Indigo Plateau"
+
+            lead_curr_hp = party[0]["currentHp"] if party else 20
+            lead_max_hp = party[0]["maxHp"] if party else 20
 
             return {
                 "trainerName": player_name,
                 "rivalName": rival_name,
                 "currentMap": current_map,
+                "mapId": map_id,
+                "coordinates": {"x": player_x, "y": player_y},
+                "currentObjective": current_objective,
                 "badges": badges,
+                "badgeCount": len(badges),
+                "inBattle": in_battle,
+                "inDialogue": font_loaded,
                 "party": party,
+                "partyCount": party_count,
+                "partyHpRatio": round(lead_curr_hp / max(1, lead_max_hp), 3),
                 "money": money if money > 0 else 3000,
+                "hasParcel": has_parcel,
+                "pokedexObtained": pokedex_obtained,
                 "pokedexOwned": max(1, party_count),
                 "pokedexSeen": max(3, party_count * 2),
                 "stepCount": self.copilot_tick,

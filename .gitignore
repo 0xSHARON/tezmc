@@ -14,5 +14,10 @@ recordings/
 tmp/
 scratch/
 *.tsbuildinfo
-data/autoplay.sqlite*
+data/
 *.gb
+*.state
+*.ram
+__pycache__/
+*.pyc
+.pytest_cache/

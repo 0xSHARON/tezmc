@@ -20,6 +20,7 @@ export class PokemonRedEngine extends EventEmitter {
   private state: PokemonRedState;
   private democracyTimer: NodeJS.Timeout | null = null;
   private aiLoopTimer: NodeJS.Timeout | null = null;
+  private stateSyncTimer: NodeJS.Timeout | null = null;
   private lastChatActionTimestamp = Date.now();
 
   private maps = [
@@ -148,6 +149,9 @@ export class PokemonRedEngine extends EventEmitter {
     // 5. Start Autonomous Co-Pilot Loop (fills in when chat is quiet)
     this.startAutonomousCoPilot();
 
+    // 6. Start State Synchronization Loop with PyBoy Emulation Core
+    this.startStateSyncLoop();
+
     this.isRunning = true;
   }
 
@@ -166,6 +170,10 @@ export class PokemonRedEngine extends EventEmitter {
     if (this.aiLoopTimer) {
       clearInterval(this.aiLoopTimer);
       this.aiLoopTimer = null;
+    }
+    if (this.stateSyncTimer) {
+      clearInterval(this.stateSyncTimer);
+      this.stateSyncTimer = null;
     }
     if (this.server) {
       await new Promise<void>((resolve) => {
@@ -291,51 +299,53 @@ export class PokemonRedEngine extends EventEmitter {
     this.state.stepCount += 1;
     this.state.lastAction = `[${sender.toUpperCase()}] PRESSED [${btn.toUpperCase()}]`;
 
-    // Simulate story / world progression
+    // When PyBoy runner is active, real Game Boy emulation controls all state (no synthetic overrides)
+    if (this.pyboyProcess) {
+      return;
+    }
+
+    // Fallback simulation only when running offline without ROM/PyBoy
     if (btn === 'up' || btn === 'down' || btn === 'left' || btn === 'right') {
-      if (Math.random() < 0.12) {
-        // Trigger wild encounter
-        if (!this.state.isBattle) {
-          this.state.isBattle = true;
-          const enemies = [
-            { name: 'RATTATA', level: 3, hpPercent: 100 },
-            { name: 'PIDGEY', level: 4, hpPercent: 100 },
-            { name: 'CATERPIE', level: 3, hpPercent: 100 },
-            { name: 'ZUBAT', level: 7, hpPercent: 100 },
-            { name: 'GEODUDE', level: 8, hpPercent: 100 }
-          ];
-          this.state.battleEnemy = enemies[Math.floor(Math.random() * enemies.length)];
-          this.state.lastAction = `WILD ${this.state.battleEnemy.name} APPEARED!`;
-        }
-      } else if (Math.random() < 0.05) {
-        // Progress map
-        const nextMapIndex = (this.maps.indexOf(this.state.currentMap) + 1) % this.maps.length;
-        this.state.currentMap = this.maps[nextMapIndex];
-        this.state.lastAction = `ENTERED: ${this.state.currentMap.toUpperCase()}`;
-      }
-    } else if (btn === 'a') {
-      if (this.state.isBattle && this.state.battleEnemy) {
-        // Deal damage
-        this.state.battleEnemy.hpPercent = Math.max(0, this.state.battleEnemy.hpPercent - 35);
-        if (this.state.battleEnemy.hpPercent <= 0) {
-          this.state.lastAction = `ENEMY ${this.state.battleEnemy.name} FAINTED! +65 EXP`;
-          this.state.isBattle = false;
-          this.state.battleEnemy = null;
-          this.state.money += 120;
-          if (this.state.party[0]) {
-            this.state.party[0].level += 1;
-            this.state.party[0].maxHp += 3;
-            this.state.party[0].currentHp = this.state.party[0].maxHp;
-          }
-        }
-      }
-    } else if (btn === 'b') {
-      if (this.state.isBattle && Math.random() < 0.5) {
-        this.state.isBattle = false;
-        this.state.battleEnemy = null;
-        this.state.lastAction = 'GOT AWAY SAFELY!';
+      if (Math.random() < 0.12 && !this.state.isBattle) {
+        this.state.isBattle = true;
+        const enemies = [
+          { name: 'RATTATA', level: 3, hpPercent: 100 },
+          { name: 'PIDGEY', level: 4, hpPercent: 100 }
+        ];
+        this.state.battleEnemy = enemies[Math.floor(Math.random() * enemies.length)];
+        this.state.lastAction = `WILD ${this.state.battleEnemy.name} APPEARED!`;
       }
     }
+  }
+
+  private startStateSyncLoop(): void {
+    const port = process.env.PYBOY_PORT || '3010';
+    this.stateSyncTimer = setInterval(() => {
+      if (!this.isRunning) return;
+      const req = http.request({
+        hostname: '127.0.0.1',
+        port: Number(port),
+        path: '/state',
+        method: 'GET',
+        timeout: 800
+      }, (res) => {
+        let raw = '';
+        res.on('data', chunk => raw += chunk);
+        res.on('end', () => {
+          try {
+            const data = JSON.parse(raw);
+            if (data && typeof data === 'object') {
+              this.state = {
+                ...this.state,
+                ...data
+              };
+            }
+          } catch {}
+        });
+      });
+      req.on('error', () => {});
+      req.end();
+    }, 1000);
   }
 
   private startDemocracyLoop(): void {
