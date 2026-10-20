@@ -9,10 +9,16 @@ import json
 import time
 
 try:
-    from pyboy import PyBoy, WindowEvent
+    from pyboy import PyBoy  # type: ignore
+    try:
+        from pyboy.utils import WindowEvent  # type: ignore
+    except ImportError:
+        from pyboy import WindowEvent  # type: ignore
     PYBOY_AVAILABLE = True
-except ImportError:
+except (ImportError, ModuleNotFoundError):
     PYBOY_AVAILABLE = False
+    PyBoy = None
+    WindowEvent = None
 
 # Game Boy RAM addresses for Pokemon Red / Blue
 ADDR_PLAYER_NAME = 0xD158
@@ -43,26 +49,26 @@ MAP_NAMES = {
 }
 
 BUTTON_EVENTS = {
-    "up": WindowEvent.PRESS_ARROW_UP,
-    "down": WindowEvent.PRESS_ARROW_DOWN,
-    "left": WindowEvent.PRESS_ARROW_LEFT,
-    "right": WindowEvent.PRESS_ARROW_RIGHT,
-    "a": WindowEvent.PRESS_BUTTON_A,
-    "b": WindowEvent.PRESS_BUTTON_B,
-    "start": WindowEvent.PRESS_BUTTON_START,
-    "select": WindowEvent.PRESS_BUTTON_SELECT,
-}
+    "up": getattr(WindowEvent, "PRESS_ARROW_UP", None),
+    "down": getattr(WindowEvent, "PRESS_ARROW_DOWN", None),
+    "left": getattr(WindowEvent, "PRESS_ARROW_LEFT", None),
+    "right": getattr(WindowEvent, "PRESS_ARROW_RIGHT", None),
+    "a": getattr(WindowEvent, "PRESS_BUTTON_A", None),
+    "b": getattr(WindowEvent, "PRESS_BUTTON_B", None),
+    "start": getattr(WindowEvent, "PRESS_BUTTON_START", None),
+    "select": getattr(WindowEvent, "PRESS_BUTTON_SELECT", None),
+} if WindowEvent else {}
 
 RELEASE_EVENTS = {
-    "up": WindowEvent.RELEASE_ARROW_UP,
-    "down": WindowEvent.RELEASE_ARROW_DOWN,
-    "left": WindowEvent.RELEASE_ARROW_LEFT,
-    "right": WindowEvent.RELEASE_ARROW_RIGHT,
-    "a": WindowEvent.RELEASE_BUTTON_A,
-    "b": WindowEvent.RELEASE_BUTTON_B,
-    "start": WindowEvent.RELEASE_BUTTON_START,
-    "select": WindowEvent.RELEASE_BUTTON_SELECT,
-}
+    "up": getattr(WindowEvent, "RELEASE_ARROW_UP", None),
+    "down": getattr(WindowEvent, "RELEASE_ARROW_DOWN", None),
+    "left": getattr(WindowEvent, "RELEASE_ARROW_LEFT", None),
+    "right": getattr(WindowEvent, "RELEASE_ARROW_RIGHT", None),
+    "a": getattr(WindowEvent, "RELEASE_BUTTON_A", None),
+    "b": getattr(WindowEvent, "RELEASE_BUTTON_B", None),
+    "start": getattr(WindowEvent, "RELEASE_BUTTON_START", None),
+    "select": getattr(WindowEvent, "RELEASE_BUTTON_SELECT", None),
+} if WindowEvent else {}
 
 def main():
     if not PYBOY_AVAILABLE:
