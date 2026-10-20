@@ -42,6 +42,21 @@ export const SubwaySurfersConfigSchema = z.object({
 
 export type SubwaySurfersConfig = z.infer<typeof SubwaySurfersConfigSchema>;
 
+export const PokemonRedConfigSchema = z.object({
+  playerTrainerName: z.string().min(1).max(12).default('RED'),
+  rivalName: z.string().min(1).max(12).default('BLUE'),
+  mode: z.enum(['anarchy', 'democracy', 'hybrid', 'autonomous_ai']).default('anarchy'),
+  chatCooldownMs: z.number().int().min(100).max(10000).default(500),
+  democracyVoteWindowSeconds: z.number().int().min(5).max(60).default(15),
+  enableViewer: z.boolean().default(true),
+  viewerPort: z.number().int().min(1024).max(65535).default(3009),
+  romPath: z.string().optional(),
+  autoDownloadRom: z.boolean().default(true),
+  starterPokemon: z.enum(['charmander', 'squirtle', 'bulbasaur']).default('charmander')
+});
+
+export type PokemonRedConfig = z.infer<typeof PokemonRedConfigSchema>;
+
 export const StreamDestinationSchema = z.object({
   id: z.string().default(() => Math.random().toString(36).substring(2, 9)),
   name: z.string().min(1).default('Primary YouTube'),

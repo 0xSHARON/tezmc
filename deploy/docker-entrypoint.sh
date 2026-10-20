@@ -16,17 +16,22 @@ echo "[Entrypoint] Launching TEZMC API Server..."
 node apps/api/dist/index.js &
 API_PID=$!
 
-# 3. Wait for Subway Surfers visual streamer on port 3008
-echo "[Entrypoint] Waiting for Subway Surfers canvas server on http://127.0.0.1:3008..."
+# 3. Wait for visual streamer (defaults to 3008 or 3009 if ACTIVE_GAME=pokemon-red)
+TARGET_PORT=${VIEWER_PORT:-3008}
+if [ "$ACTIVE_GAME" = "pokemon-red" ]; then
+    TARGET_PORT=3009
+fi
+
+echo "[Entrypoint] Waiting for visual streamer on http://127.0.0.1:$TARGET_PORT..."
 MAX_WAIT=30
 WAITED=0
-until curl -s http://127.0.0.1:3008 > /dev/null 2>&1 || [ $WAITED -ge $MAX_WAIT ]; do
+until curl -s http://127.0.0.1:$TARGET_PORT > /dev/null 2>&1 || [ $WAITED -ge $MAX_WAIT ]; do
     sleep 0.5
     WAITED=$((WAITED + 1))
 done
 
-# 4. Launch Chromium in kiosk mode to display Subway Surfers 60FPS canvas on :99
-echo "[Entrypoint] Launching Chromium in kiosk mode displaying Subway Surfers on :99..."
+# 4. Launch Chromium in kiosk mode displaying active game on :99
+echo "[Entrypoint] Launching Chromium in kiosk mode displaying http://127.0.0.1:$TARGET_PORT on :99..."
 chromium --no-sandbox \
     --disable-dev-shm-usage \
     --disable-gpu \
@@ -34,7 +39,7 @@ chromium --no-sandbox \
     --window-size=1280,720 \
     --window-position=0,0 \
     --autoplay-policy=no-user-gesture-required \
-    --app=http://127.0.0.1:3008 &
+    --app=http://127.0.0.1:$TARGET_PORT &
 CHROME_PID=$!
 
 echo "[Entrypoint] All visual and streaming subsystems operational."

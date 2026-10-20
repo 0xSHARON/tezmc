@@ -6,6 +6,7 @@ import { Server as SocketIOServer } from 'socket.io';
 import { SOCKET_EVENTS, SecretRedactor } from '@autoplay/shared';
 import { AdapterRegistry } from '@autoplay/adapter-sdk';
 import { SubwaySurfersAdapter, SubwaySurfersEngine } from '@autoplay/adapter-subway-surfers';
+import { PokemonRedAdapter } from '@autoplay/adapter-pokemon-red';
 import { StreamingManager } from '@autoplay/streaming';
 import { SessionStateMachine } from '@autoplay/session-manager';
 import { MonitoringService } from '@autoplay/monitoring';
@@ -42,9 +43,15 @@ async function bootstrap() {
   const subwaySurfersAdapter = new SubwaySurfersAdapter();
   registry.register(subwaySurfersAdapter);
 
-  // Initialize 24/7 standby Subway Surfers visual streamer on 0.0.0.0:3008
+  const pokemonRedAdapter = new PokemonRedAdapter();
+  registry.register(pokemonRedAdapter);
+
+  // Initialize 24/7 standby visual streamers on dedicated viewer ports
   await subwaySurfersAdapter.initializeStandbyViewer(3008).catch((err) => {
     logger.warn({ err }, 'Failed to bind Subway Surfers standby viewer on port 3008');
+  });
+  await pokemonRedAdapter.initializeStandbyViewer(3009).catch((err) => {
+    logger.warn({ err }, 'Failed to bind Pokemon Red standby viewer on port 3009');
   });
 
   // Streaming & Session Manager

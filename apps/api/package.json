@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@autoplay/adapter-subway-surfers": "workspace:*",
+    "@autoplay/adapter-pokemon-red": "workspace:*",
     "@autoplay/adapter-sdk": "workspace:*",
     "@autoplay/capture": "workspace:*",
     "@autoplay/monitoring": "workspace:*",

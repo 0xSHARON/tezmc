@@ -11,6 +11,7 @@ export default defineConfig({
       '@autoplay/adapter-sdk': path.resolve(__dirname, 'packages/game-adapters/adapter-sdk/src/index.ts'),
       '@autoplay/game-adapter-sdk': path.resolve(__dirname, 'packages/game-adapters/adapter-sdk/src/index.ts'),
       '@autoplay/adapter-subway-surfers': path.resolve(__dirname, 'packages/game-adapters/subway-surfers/src/index.ts'),
+      '@autoplay/adapter-pokemon-red': path.resolve(__dirname, 'packages/game-adapters/pokemon-red/src/index.ts'),
       '@autoplay/streaming': path.resolve(__dirname, 'packages/streaming/src/index.ts'),
       '@autoplay/capture': path.resolve(__dirname, 'packages/capture/src/index.ts'),
       '@autoplay/session-manager': path.resolve(__dirname, 'packages/session-manager/src/index.ts'),

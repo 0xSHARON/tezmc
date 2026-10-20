@@ -13,6 +13,7 @@ services:
     ports:
       - "3000:3000"
       - "3008:3008"
+      - "3009:3009"
     environment:
       - NODE_ENV=production
       - PORT=3000
