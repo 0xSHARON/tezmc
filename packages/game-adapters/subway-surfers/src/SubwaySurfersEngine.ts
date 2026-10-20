@@ -428,38 +428,247 @@ export class SubwaySurfersEngine extends EventEmitter {
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>TEZMC - Subway Surfers 24/7 Autonomous Stream</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TEZMC // SUBWAY SURFERS 24/7 AUTONOMOUS STREAM [SYBO OFFICIAL UNITY 3D]</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { background: #050505; color: #fff; font-family: monospace; overflow: hidden; }
-    canvas { display: block; width: 100vw; height: 100vh; background: #090a0f; }
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #000000;
+      color: #ffffff;
+      font-family: 'Courier New', Courier, monospace;
+      user-select: none;
+    }
+
+    #game-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 1;
+      background: #000;
+    }
+
+    #sybo-frame {
+      width: 100%;
+      height: 100%;
+      border: none;
+      display: block;
+    }
+
+    /* TEZMC Cyber-Brutalist Stream HUD Overlays */
+    .hud-overlay {
+      position: absolute;
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    /* Top Left Telemetry Matrix */
+    .hud-top-left {
+      top: 16px;
+      left: 16px;
+      background: rgba(0, 0, 0, 0.88);
+      border: 2px solid #10b981;
+      padding: 12px 18px;
+      box-shadow: 4px 4px 0px #10b981;
+    }
+
+    .hud-title {
+      font-size: 13px;
+      font-weight: 900;
+      letter-spacing: 1.5px;
+      color: #10b981;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .hud-badge {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      background: #10b981;
+      box-shadow: 0 0 8px #10b981;
+      animation: pulse 1.2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+
+    .hud-stat-row {
+      display: flex;
+      gap: 16px;
+      font-size: 14px;
+      font-weight: bold;
+      margin-top: 4px;
+    }
+
+    .stat-val-gold { color: #facc15; }
+    .stat-val-white { color: #ffffff; }
+    .stat-val-cyan { color: #38bdf8; }
+
+    /* Top Right Controls & Status */
+    .hud-top-right {
+      top: 16px;
+      right: 16px;
+      display: flex;
+      gap: 8px;
+      pointer-events: auto;
+    }
+
+    .brutal-btn {
+      background: #000;
+      color: #10b981;
+      border: 2px solid #10b981;
+      padding: 8px 14px;
+      font-family: inherit;
+      font-size: 11px;
+      font-weight: 900;
+      cursor: pointer;
+      box-shadow: 3px 3px 0px #10b981;
+      transition: all 0.1s ease;
+    }
+
+    .brutal-btn:hover {
+      background: #10b981;
+      color: #000;
+      transform: translate(-1px, -1px);
+      box-shadow: 4px 4px 0px #ffffff;
+    }
+
+    /* Bottom Chat & Action Ticker */
+    .hud-bottom-bar {
+      bottom: 16px;
+      left: 16px;
+      right: 16px;
+      background: rgba(0, 0, 0, 0.90);
+      border: 2px solid #3f3f46;
+      border-left: 6px solid #10b981;
+      padding: 10px 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 4px 4px 0px rgba(0, 0, 0, 0.8);
+    }
+
+    .chat-commands {
+      font-size: 12px;
+      color: #a1a1aa;
+      font-weight: bold;
+    }
+
+    .chat-commands span {
+      color: #facc15;
+      margin-right: 10px;
+    }
+
+    .runner-status {
+      font-size: 12px;
+      color: #34d399;
+      font-weight: 900;
+      letter-spacing: 0.5px;
+    }
   </style>
 </head>
 <body>
-  <canvas id="c"></canvas>
+  <!-- Authentic SYBO Unity WebGL 3D Client -->
+  <div id="game-container">
+    <iframe
+      id="sybo-frame"
+      src="https://hilfig3r.github.io/subway-surfer-monaco/"
+      allow="autoplay; fullscreen; keyboard-map; focus-without-user-activation *"
+      sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+    ></iframe>
+  </div>
+
+  <!-- TEZMC Top-Left Telemetry Matrix -->
+  <div class="hud-overlay hud-top-left">
+    <div class="hud-title">
+      <span class="hud-badge"></span>
+      TEZMC // SYBO SUBWAY SURFERS 24/7 LIVE
+    </div>
+    <div class="hud-stat-row">
+      <span>CLIENT: <span class="stat-val-cyan">OFFICIAL SYBO UNITY 3D (WASM)</span></span>
+      <span>EDITION: <span class="stat-val-white">MONACO WORLD TOUR</span></span>
+    </div>
+    <div class="hud-stat-row">
+      <span>AUTONOMOUS ENGINE: <span class="stat-val-gold" id="score-display">ACTIVE</span></span>
+      <span>MULTIPLIER: <span class="stat-val-cyan" id="mult-display">10X</span></span>
+    </div>
+  </div>
+
+  <!-- Top-Right Brutalist Action Bar -->
+  <div class="hud-overlay hud-top-right">
+    <button class="brutal-btn" id="btn-focus">FOCUS GAME [CLICK / ARROWS / SPACE]</button>
+    <button class="brutal-btn" id="btn-play">START RUN</button>
+  </div>
+
+  <!-- Bottom Interactive Viewer Banner -->
+  <div class="hud-overlay hud-bottom-bar">
+    <div class="chat-commands">
+      <span>YOUTUBE CHAT CONTROLS:</span>
+      !left &nbsp; !right &nbsp; !jump &nbsp; !roll &nbsp; !hoverboard
+    </div>
+    <div class="runner-status" id="status-display">
+      SYSTEM: RUNNING 60FPS AUTONOMOUS STREAM
+    </div>
+  </div>
+
   <script>
-    const canvas = document.getElementById('c');
-    const ctx = canvas.getContext('2d');
-    let W, H;
+    const frame = document.getElementById('sybo-frame');
+    const btnFocus = document.getElementById('btn-focus');
+    const btnPlay = document.getElementById('btn-play');
+    const statusDisplay = document.getElementById('status-display');
+    const scoreDisplay = document.getElementById('score-display');
+    const multDisplay = document.getElementById('mult-display');
 
-    function resize() {
-      W = canvas.width = window.innerWidth;
-      H = canvas.height = window.innerHeight;
+    function focusGame() {
+      try {
+        frame.contentWindow.focus();
+      } catch (e) {}
     }
-    window.addEventListener('resize', resize);
-    resize();
 
-    let serverState = {
-      state: {
-        score: 0, coins: 0, distanceMeters: 0, speedKmh: 45, multiplier: 10,
-        lane: 0, isJumping: false, jumpProgress: 0, isRolling: false, rollProgress: 0,
-        hasHoverboard: false, isCrashed: false, runCount: 1, topScore: 0
-      },
-      obstacles: [],
-      coins: [],
-      lastAction: 'INITIALIZING'
-    };
+    btnFocus.addEventListener('click', focusGame);
+    window.addEventListener('click', () => {
+      focusGame();
+    });
 
+    btnPlay.addEventListener('click', () => {
+      focusGame();
+      // Send Space Key to start or jump
+      dispatchKey('Space', 32);
+    });
+
+    function dispatchKey(code, keyCode) {
+      try {
+        const doc = frame.contentDocument || frame.contentWindow.document;
+        if (doc) {
+          const evDown = new KeyboardEvent('keydown', { key: code, code: code, keyCode: keyCode, which: keyCode, bubbles: true });
+          const evUp = new KeyboardEvent('keyup', { key: code, code: code, keyCode: keyCode, which: keyCode, bubbles: true });
+          doc.dispatchEvent(evDown);
+          setTimeout(() => doc.dispatchEvent(evUp), 80);
+        }
+      } catch (e) {
+        // Cross-origin fallback: focus window
+        focusGame();
+      }
+    }
+
+    // Forward global window arrow keys into game iframe
+    window.addEventListener('keydown', (e) => {
+      focusGame();
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
+        statusDisplay.textContent = 'PLAYER ACTION: ' + e.key.toUpperCase();
+      }
+    });
+
+    // Poll live state from TEZMC Engine
     async function pollState() {
       try {
         const stateUrl = window.location.pathname.endsWith('/') ? 'state' : window.location.pathname + '/state';
@@ -467,262 +676,20 @@ export class SubwaySurfersEngine extends EventEmitter {
         if (res.ok) {
           const data = await res.json();
           if (data && data.state) {
-            serverState = data;
+            scoreDisplay.textContent = 'SCORE ' + data.state.score;
+            multDisplay.textContent = data.state.multiplier + 'X';
+            if (data.lastAction) {
+              statusDisplay.textContent = 'STATUS: ' + data.lastAction;
+            }
           }
         }
       } catch (e) {}
-      setTimeout(pollState, 100);
+      setTimeout(pollState, 800);
     }
     pollState();
-
-    let currentVisualLane = 0;
-    let trackOffset = 0;
-
-    function render() {
-      requestAnimationFrame(render);
-      const s = serverState.state;
-
-      // Smooth lane transition
-      currentVisualLane += (s.lane - currentVisualLane) * 0.25;
-      trackOffset += (s.speedKmh * 0.3);
-
-      ctx.clearRect(0, 0, W, H);
-
-      // Sky & Horizon
-      const gradSky = ctx.createLinearGradient(0, 0, 0, H * 0.45);
-      gradSky.addColorStop(0, '#0a0d1a');
-      gradSky.addColorStop(1, '#1e293b');
-      ctx.fillStyle = gradSky;
-      ctx.fillRect(0, 0, W, H * 0.45);
-
-      // Distant City Skyline
-      ctx.fillStyle = '#0f172a';
-      for (let x = 0; x < W; x += 60) {
-        const bh = 40 + ((x * 13) % 80);
-        ctx.fillRect(x, H * 0.45 - bh, 50, bh);
-      }
-
-      // Ground Ballast & Tracks (Vanishing Point 3D)
-      const vpX = W * 0.5;
-      const vpY = H * 0.45;
-
-      const gradGround = ctx.createLinearGradient(0, vpY, 0, H);
-      gradGround.addColorStop(0, '#1c1917');
-      gradGround.addColorStop(1, '#0c0a09');
-      ctx.fillStyle = gradGround;
-      ctx.fillRect(0, vpY, W, H - vpY);
-
-      // Draw 3 Railroad Tracks (Left, Center, Right)
-      const trackBaseWidth = W * 0.85;
-      const trackTopWidth = 60;
-
-      function project(xLane, zMeters) {
-        const scale = 30 / (zMeters + 25);
-        const y = vpY + (H - vpY) * (1 - (25 / (zMeters + 25)));
-        const x = vpX + (xLane * 180) * (scale * 2.2);
-        return { x, y, scale };
-      }
-
-      // Railroad Sleepers (Ties)
-      ctx.strokeStyle = '#292524';
-      ctx.lineWidth = 4;
-      for (let z = (trackOffset % 15); z < 120; z += 15) {
-        const pL = project(-1.4, z);
-        const pR = project(1.4, z);
-        ctx.beginPath();
-        ctx.moveTo(pL.x, pL.y);
-        ctx.lineTo(pR.x, pR.y);
-        ctx.stroke();
-      }
-
-      // Steel Rails (3 Tracks x 2 Rails each)
-      const railLanes = [-1, 0, 1];
-      ctx.strokeStyle = '#78716c';
-      ctx.lineWidth = 3;
-      railLanes.forEach(lane => {
-        const pFarL = project(lane - 0.28, 120);
-        const pFarR = project(lane + 0.28, 120);
-        const pNearL = project(lane - 0.28, 0);
-        const pNearR = project(lane + 0.28, 0);
-
-        ctx.beginPath();
-        ctx.moveTo(pFarL.x, pFarL.y);
-        ctx.lineTo(pNearL.x, pNearL.y);
-        ctx.stroke();
-
-        ctx.beginPath();
-        ctx.moveTo(pFarR.x, pFarR.y);
-        ctx.lineTo(pNearR.x, pNearR.y);
-        ctx.stroke();
-      });
-
-      // Overhead Wires
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
-      ctx.lineWidth = 1;
-      railLanes.forEach(lane => {
-        const pF = project(lane, 120);
-        const pN = project(lane, 0);
-        ctx.beginPath();
-        ctx.moveTo(pF.x, pF.y - 100);
-        ctx.lineTo(pN.x, pN.y - 320);
-        ctx.stroke();
-      });
-
-      // Draw Coins (Z sorted)
-      (serverState.coins || []).forEach(c => {
-        if (c.collected || c.zDistance < 0 || c.zDistance > 100) return;
-        const p = project(c.lane, c.zDistance);
-        const r = Math.max(3, 16 * p.scale);
-
-        ctx.save();
-        ctx.translate(p.x, p.y - 25 * p.scale);
-        ctx.fillStyle = '#facc15';
-        ctx.beginPath();
-        ctx.arc(0, 0, r, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = '#ca8a04';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-        ctx.restore();
-      });
-
-      // Draw Obstacles (Trains and Barriers)
-      (serverState.obstacles || []).sort((a,b) => b.zDistance - a.zDistance).forEach(obs => {
-        if (obs.zDistance < 0 || obs.zDistance > 110) return;
-        const p = project(obs.lane, obs.zDistance);
-        const w = Math.max(20, 110 * p.scale);
-
-        if (obs.type === 'train') {
-          const h = Math.max(35, 170 * p.scale);
-          // Train Front
-          ctx.fillStyle = '#dc2626';
-          ctx.fillRect(p.x - w/2, p.y - h, w, h);
-          // Train Front Grille & Lights
-          ctx.fillStyle = '#fef08a';
-          ctx.fillRect(p.x - w * 0.35, p.y - h * 0.3, w * 0.2, h * 0.15);
-          ctx.fillRect(p.x + w * 0.15, p.y - h * 0.3, w * 0.2, h * 0.15);
-          // Windshield
-          ctx.fillStyle = '#0f172a';
-          ctx.fillRect(p.x - w * 0.4, p.y - h * 0.85, w * 0.8, h * 0.35);
-        } else if (obs.type === 'low_barrier') {
-          const h = Math.max(12, 50 * p.scale);
-          ctx.fillStyle = '#ea580c';
-          ctx.fillRect(p.x - w/2, p.y - h, w, h);
-          // Stripes
-          ctx.fillStyle = '#ffffff';
-          ctx.fillRect(p.x - w * 0.2, p.y - h, w * 0.15, h);
-        } else if (obs.type === 'high_barrier') {
-          const h = Math.max(16, 60 * p.scale);
-          const clearance = Math.max(15, 65 * p.scale);
-          ctx.fillStyle = '#0284c7';
-          ctx.fillRect(p.x - w/2, p.y - h - clearance, w, h);
-          ctx.fillStyle = '#38bdf8';
-          ctx.font = \`\${Math.round(10 * p.scale)}px monospace\`;
-          ctx.fillText('SUBWAY', p.x - w * 0.3, p.y - clearance - h * 0.3);
-        }
-      });
-
-      // Draw Player Character (Jake)
-      const playerPos = project(currentVisualLane, 0);
-      let pY = playerPos.y;
-
-      if (s.isJumping) {
-        const jumpH = Math.sin(s.jumpProgress * Math.PI) * 140;
-        pY -= jumpH;
-      }
-
-      // Shadow on ground
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
-      ctx.beginPath();
-      ctx.ellipse(playerPos.x, playerPos.y, 25, 8, 0, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Hoverboard if active
-      if (s.hasHoverboard) {
-        ctx.fillStyle = '#10b981';
-        ctx.fillRect(playerPos.x - 30, pY - 8, 60, 10);
-        ctx.fillStyle = '#34d399';
-        ctx.fillRect(playerPos.x - 25, pY - 6, 50, 4);
-      }
-
-      if (s.isRolling) {
-        // Rolling sphere
-        ctx.fillStyle = '#f97316';
-        ctx.beginPath();
-        ctx.arc(playerPos.x, pY - 20, 20, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = '#0284c7';
-        ctx.fillRect(playerPos.x - 12, pY - 22, 24, 8);
-      } else {
-        // Jake Running Body
-        ctx.fillStyle = '#0284c7'; // Blue Jeans
-        ctx.fillRect(playerPos.x - 12, pY - 35, 10, 30);
-        ctx.fillRect(playerPos.x + 2, pY - 35, 10, 30);
-        // Hoodie
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(playerPos.x - 16, pY - 65, 32, 32);
-        // Cap & Head
-        ctx.fillStyle = '#fed7aa';
-        ctx.beginPath();
-        ctx.arc(playerPos.x, pY - 75, 12, 0, Math.PI * 2);
-        ctx.fill();
-        // Red backwards Cap
-        ctx.fillStyle = '#ef4444';
-        ctx.fillRect(playerPos.x - 14, pY - 88, 28, 12);
-        ctx.fillRect(playerPos.x - 20, pY - 80, 10, 4);
-      }
-
-      // Cyber-Brutalist Live Stream HUD
-      ctx.fillStyle = '#000000';
-      ctx.fillRect(20, 20, 380, 95);
-      ctx.strokeStyle = '#10b981';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(20, 20, 380, 95);
-
-      ctx.fillStyle = '#10b981';
-      ctx.font = 'bold 13px monospace';
-      ctx.fillText('[TEZMC // SUBWAY SURFERS 24/7 LIVE]', 35, 45);
-
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 15px monospace';
-      ctx.fillText(\`SCORE: \${String(s.score).padStart(7, '0')}  [\${s.multiplier}X]\`, 35, 70);
-
-      ctx.fillStyle = '#facc15';
-      ctx.font = 'bold 12px monospace';
-      ctx.fillText(\`COINS: \${s.coins}   DIST: \${Math.round(s.distanceMeters)}M   \${Math.round(s.speedKmh)} KM/H\`, 35, 95);
-
-      // Bottom Interaction Banner
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
-      ctx.fillRect(20, H - 65, W - 40, 45);
-      ctx.strokeStyle = '#3f3f46';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(20, H - 65, W - 40, 45);
-
-      ctx.fillStyle = '#a1a1aa';
-      ctx.font = '12px monospace';
-      ctx.fillText('CHAT COMMANDS: !left  !right  !jump  !roll  !hoverboard', 40, H - 38);
-
-      ctx.fillStyle = '#34d399';
-      ctx.font = 'bold 12px monospace';
-      ctx.fillText(\`STATUS: \${serverState.lastAction}\`, W * 0.52, H - 38);
-
-      if (s.isCrashed) {
-        ctx.fillStyle = 'rgba(220, 38, 38, 0.85)';
-        ctx.fillRect(W/2 - 200, H/2 - 50, 400, 100);
-        ctx.strokeStyle = '#ffffff';
-        ctx.strokeRect(W/2 - 200, H/2 - 50, 400, 100);
-        ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 18px monospace';
-        ctx.textAlign = 'center';
-        ctx.fillText('CRASHED! INSPECTOR CAUGHT JAKE', W/2, H/2 - 10);
-        ctx.font = '12px monospace';
-        ctx.fillText('AUTO-REVIVING IN 3 SECONDS FOR 24/7 STREAM...', W/2, H/2 + 20);
-        ctx.textAlign = 'left';
-      }
-    }
-    render();
   </script>
 </body>
 </html>`;
   }
 }
+
