@@ -3,7 +3,8 @@ set -e
 
 echo "=== Starting TEZMC Autonomous Core ==="
 
-# 1. Start Xvfb virtual framebuffer on :99
+# 1. Clean up stale Xvfb lock files and start Xvfb virtual framebuffer on :99
+rm -f /tmp/.X99-lock /tmp/.X11-unix/X99 2>/dev/null || true
 if [ -z "$(pgrep Xvfb 2>/dev/null || true)" ]; then
     echo "[Entrypoint] Starting Xvfb virtual display on :99..."
     Xvfb :99 -screen 0 1280x720x24 -ac +extension GLX +render -noreset &
@@ -32,15 +33,19 @@ done
 
 # 4. Launch Chromium in kiosk mode displaying active game on :99
 echo "[Entrypoint] Launching Chromium in kiosk mode displaying http://127.0.0.1:$TARGET_PORT on :99..."
-chromium --no-sandbox \
-    --disable-dev-shm-usage \
-    --disable-gpu \
-    --kiosk \
-    --window-size=1280,720 \
-    --window-position=0,0 \
-    --autoplay-policy=no-user-gesture-required \
-    --app=http://127.0.0.1:$TARGET_PORT &
-CHROME_PID=$!
+(
+    while true; do
+        chromium --no-sandbox \
+            --disable-dev-shm-usage \
+            --disable-gpu \
+            --kiosk \
+            --window-size=1280,720 \
+            --window-position=0,0 \
+            --autoplay-policy=no-user-gesture-required \
+            --app=http://127.0.0.1:$TARGET_PORT || true
+        sleep 2
+    done
+) &
 
 echo "[Entrypoint] All visual and streaming subsystems operational."
 

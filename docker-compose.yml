@@ -19,6 +19,7 @@ services:
       - PORT=3000
       - DATABASE_URL=file:/app/data/autoplay.sqlite
       - CAPTURE_SOURCE_TYPE=x11
+      - ACTIVE_GAME=${ACTIVE_GAME:-pokemon-red}
     volumes:
       - autoplay_data:/app/data
       - autoplay_logs:/app/logs
