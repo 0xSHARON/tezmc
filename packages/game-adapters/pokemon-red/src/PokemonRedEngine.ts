@@ -339,8 +339,9 @@ export class PokemonRedEngine extends EventEmitter {
           req.on('end', () => {
             try {
               const data = JSON.parse(body);
-              if (data.action) {
-                const result = this.executeAction(data.action, data.sender || 'Web');
+              const actionName = data.action || data.command;
+              if (actionName) {
+                const result = this.executeAction(actionName, data.sender || 'Web');
                 res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
                 res.end(JSON.stringify(result));
                 return;
