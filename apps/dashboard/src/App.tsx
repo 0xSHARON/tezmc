@@ -169,26 +169,18 @@ export default function App() {
   };
 
   const handleStartStream = async (config: any) => {
-    await fetch('/api/v1/sessions', {
+    const res = await fetch('/api/v1/stream/start', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${authToken}`
       },
-      body: JSON.stringify({
-        gameId: 'subway-surfers',
-        gameConfig: {
-          botName: 'JakeSurfer',
-          mode: 'autonomous_ai',
-          difficulty: 'normal',
-          autoRevive: true,
-          viewerPort: 3008,
-          enableViewer: true,
-          startingMultiplier: 10
-        },
-        streamConfig: config
-      })
+      body: JSON.stringify(config)
     });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || err.error || 'Failed to start broadcast targets');
+    }
     refreshState();
   };
 

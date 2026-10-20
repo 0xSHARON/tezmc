@@ -49,6 +49,8 @@ export const Streaming: React.FC<StreamingProps> = ({
   const [resolution, setResolution] = useState('1280x720');
   const [fps, setFps] = useState('30');
   const [bitrate, setBitrate] = useState('2500k');
+  const [isStarting, setIsStarting] = useState(false);
+  const [startError, setStartError] = useState<string | null>(null);
 
   // Multi-stream state
   const [destinations, setDestinations] = useState<Destination[]>([]);
@@ -298,20 +300,36 @@ export const Streaming: React.FC<StreamingProps> = ({
   };
 
   const handleStart = async () => {
-    const [width, height] = resolution.split('x').map(Number);
-    const activeDests = destinations.filter((d) => d.enabled);
+    setIsStarting(true);
+    setStartError(null);
+    try {
+      const [width, height] = resolution.split('x').map(Number);
+      let activeDests = destinations.filter((d) => d.enabled);
 
-    await onStartStream({
-      provider,
-      rtmpUrl: activeDests[0]?.rtmpUrl || 'rtmp://a.rtmp.youtube.com/live2',
-      width,
-      height,
-      fps: Number(fps),
-      videoBitrate: bitrate,
-      audioBitrate: '128k',
-      overlayEnabled: true,
-      destinations: activeDests
-    });
+      // If user clicked start but no targets were enabled, auto-enable the first available destination
+      if (activeDests.length === 0 && destinations.length > 0) {
+        await handleToggle(destinations[0].id, false);
+        activeDests = [{ ...destinations[0], enabled: true }];
+      }
+
+      await onStartStream({
+        provider,
+        rtmpUrl: activeDests[0]?.rtmpUrl || 'rtmp://a.rtmp.youtube.com/live2',
+        width,
+        height,
+        fps: Number(fps),
+        videoBitrate: bitrate,
+        audioBitrate: '128k',
+        overlayEnabled: true,
+        destinations: activeDests
+      });
+      await fetchDestinations();
+    } catch (err: any) {
+      console.error('Failed to start targets:', err);
+      setStartError(err?.message || 'Failed to start broadcast targets.');
+    } finally {
+      setIsStarting(false);
+    }
   };
 
   const getPlatformBadge = (platform: string) => {
@@ -349,6 +367,13 @@ export const Streaming: React.FC<StreamingProps> = ({
           </div>
 
           <div className="flex items-center gap-3">
+            <div className="px-3 py-1.5 bg-zinc-950 border border-zinc-800 text-xs flex items-center gap-1.5">
+              <span className="text-zinc-500">ENGINE:</span>
+              <span className={`font-bold ${provider === 'obs' ? 'text-purple-400' : 'text-emerald-400'} uppercase`}>
+                [{provider === 'obs' ? 'OBS Studio (OBSProvider)' : 'FFmpeg (Headless)'}]
+              </span>
+            </div>
+
             <div className="px-3 py-1.5 bg-zinc-950 border border-zinc-800 text-xs">
               <span className="text-zinc-500 mr-2">ENCODER STATUS:</span>
               <span className={`font-bold ${
@@ -364,11 +389,20 @@ export const Streaming: React.FC<StreamingProps> = ({
 
             <button
               onClick={handleStart}
-              disabled={streamStatus === 'LIVE_CONFIRMED' || streamStatus === 'ENCODER_RUNNING'}
+              disabled={isStarting || streamStatus === 'LIVE_CONFIRMED' || streamStatus === 'ENCODER_RUNNING'}
               className="flex items-center gap-2 px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 disabled:bg-zinc-800 disabled:text-zinc-600 text-black border-2 border-white shadow-[2px_2px_0px_0px_#ffffff] text-xs font-black uppercase tracking-wider transition-all cursor-pointer"
             >
-              <Play className="w-4 h-4 fill-black" />
-              START ALL TARGETS ({activeCount})
+              {isStarting ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin text-black" />
+                  STARTING TARGETS...
+                </>
+              ) : (
+                <>
+                  <Play className="w-4 h-4 fill-black" />
+                  START ALL TARGETS ({activeCount})
+                </>
+              )}
             </button>
 
             <button
@@ -381,6 +415,22 @@ export const Streaming: React.FC<StreamingProps> = ({
             </button>
           </div>
         </div>
+
+        {/* Start / Broadcast Error Display */}
+        {startError && (
+          <div className="mt-4 p-3 bg-red-950/80 border-2 border-red-600 text-red-200 text-xs flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
+              <span>{startError}</span>
+            </div>
+            <button
+              onClick={() => setStartError(null)}
+              className="text-zinc-400 hover:text-white uppercase font-bold text-[10px]"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
 
         {/* Live Metrics Grid */}
         {streamMetrics && (
@@ -551,7 +601,19 @@ export const Streaming: React.FC<StreamingProps> = ({
           Global video settings applied to all outgoing multi-stream targets simultaneously.
         </p>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div>
+            <label className="block text-xs font-bold text-zinc-400 mb-1">ENCODER PROVIDER</label>
+            <select
+              value={provider}
+              onChange={(e) => setProvider(e.target.value)}
+              className="w-full bg-zinc-950 border border-zinc-800 p-2.5 text-xs text-white focus:outline-none focus:border-emerald-500 font-mono"
+            >
+              <option value="ffmpeg">FFmpeg (Server Headless Ingest)</option>
+              <option value="obs">OBS Studio (OBSProvider / WebSocket)</option>
+            </select>
+          </div>
+
           <div>
             <label className="block text-xs font-bold text-zinc-400 mb-1">CANVAS RESOLUTION</label>
             <select
@@ -587,6 +649,27 @@ export const Streaming: React.FC<StreamingProps> = ({
               <option value="4500k">4500 kbps (High Quality 1080p)</option>
             </select>
           </div>
+        </div>
+
+        <div className="mt-4 p-3 bg-zinc-950 border border-zinc-800 text-[11px] text-zinc-300 flex items-center justify-between">
+          {provider === 'obs' ? (
+            <div className="flex items-center gap-2">
+              <Radio className="w-4 h-4 text-purple-400 flex-shrink-0" />
+              <span>
+                <strong className="text-purple-400">OBS Studio Mode (OBSProvider):</strong> Direct WebSocket connection to OBS Studio for hardware acceleration, studio transitions, and external desktop scenes.
+              </span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Cpu className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+              <span>
+                <strong className="text-emerald-400">FFmpeg Headless Mode (Server Native):</strong> Autonomous Linux broadcast engine with real-time zero-latency x264 encoding and native multi-destination tee muxer.
+              </span>
+            </div>
+          )}
+          <span className="text-[10px] font-bold border px-2 py-0.5 uppercase border-zinc-700 text-zinc-400">
+            {provider === 'obs' ? 'OBS WEBSOCKET' : 'HEADLESS DAEMON'}
+          </span>
         </div>
       </div>
 

@@ -74,8 +74,19 @@ export class SessionStateMachine extends EventEmitter {
   }
 
   public async start(input: SessionCreateInput): Promise<void> {
-    // Idempotency: if already running with same config, return
+    // Idempotency: if already running with same config, update stream if provided
     if (this.currentState === 'RUNNING' || this.currentState === 'STARTING_GAME') {
+      if (input.streamConfig) {
+        const captureSource = await CaptureValidator.resolveBestSource(
+          process.env.CAPTURE_SOURCE_TYPE || 'auto'
+        );
+        this.currentInput = {
+          ...this.currentInput,
+          ...input,
+          streamConfig: input.streamConfig
+        };
+        await this.streamingManager.startStream(input.streamConfig, captureSource);
+      }
       return;
     }
 

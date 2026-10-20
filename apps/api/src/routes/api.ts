@@ -13,6 +13,7 @@ import { StreamingManager, MultiStreamManager, PLATFORM_PRESETS } from '@autopla
 import { MonitoringService } from '@autoplay/monitoring';
 import { SchedulerService } from '@autoplay/scheduler';
 import { ChatManager } from '@autoplay/chat-interactivity';
+import { CaptureValidator } from '@autoplay/capture';
 import { DbService } from '../services/db.js';
 import { generateToken, requireAuth } from '../auth/jwt.js';
 import { logger } from '../services/logger.js';
@@ -188,6 +189,44 @@ export function createApiRouter(
       status: streamingManager.getStatus(),
       metrics: streamingManager.getMetrics()
     });
+  });
+
+  router.post('/stream/start', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const config = StreamConfigSchema.parse(req.body);
+      const captureSource = await CaptureValidator.resolveBestSource(
+        process.env.CAPTURE_SOURCE_TYPE || 'auto'
+      );
+
+      const activeSession = sessionMachine.getActiveSession();
+      if (!activeSession || activeSession.state === 'IDLE' || activeSession.state === 'FAILED') {
+        const sessionInput = SessionCreateSchema.parse({
+          gameId: 'subway-surfers',
+          gameConfig: {
+            botName: 'JakeSurfer',
+            mode: 'autonomous_ai',
+            difficulty: 'normal',
+            autoRevive: true,
+            viewerPort: 3008,
+            enableViewer: true,
+            startingMultiplier: 10
+          },
+          streamConfig: config
+        });
+        await sessionMachine.start(sessionInput);
+      } else {
+        await streamingManager.startStream(config, captureSource);
+      }
+
+      db.recordAuditLog('STREAM_START', 'stream', {
+        provider: config.provider,
+        destinationsCount: config.destinations?.length || 1
+      });
+      res.json({ success: true, status: streamingManager.getStatus() });
+    } catch (err: any) {
+      logger.error({ err }, 'Failed to start stream');
+      res.status(400).json({ error: 'Failed to start stream', message: err?.message || err });
+    }
   });
 
   router.post('/stream/stop', requireAuth, async (_req: Request, res: Response) => {
