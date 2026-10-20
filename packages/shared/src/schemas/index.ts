@@ -73,8 +73,8 @@ export const SessionCreateSchema = z.object({
 export type SessionCreateInput = z.infer<typeof SessionCreateSchema>;
 
 export const UserCredentialsSchema = z.object({
-  username: z.string().min(3),
-  password: z.string().min(6)
+  username: z.string().min(1).default('admin'),
+  password: z.string().min(1)
 });
 
 export type UserCredentials = z.infer<typeof UserCredentialsSchema>;

@@ -9,7 +9,10 @@ import {
   Settings as SettingsIcon,
   Activity,
   ShieldCheck,
-  AlertCircle
+  AlertCircle,
+  Lock,
+  LogOut,
+  Terminal
 } from 'lucide-react';
 import { Overview } from './components/Overview';
 import { Adapters } from './components/Adapters';
@@ -17,8 +20,10 @@ import { Sessions } from './components/Sessions';
 import { Streaming } from './components/Streaming';
 import { Scheduler } from './components/Scheduler';
 import { Settings } from './components/Settings';
+import { BrutalistLogin } from './components/BrutalistLogin';
 
 export default function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'adapters' | 'sessions' | 'streaming' | 'scheduler' | 'settings'>('overview');
   const [sessionState, setSessionState] = useState<string>('IDLE');
   const [streamStatus, setStreamStatus] = useState<string>('INACTIVE');
@@ -33,21 +38,18 @@ export default function App() {
   const [authToken, setAuthToken] = useState<string>('');
 
   useEffect(() => {
-    // 1. Initial Login to obtain local JWT token
-    fetch('/api/v1/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: 'admin', password: 'autoplay2026' })
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.token) setAuthToken(data.token);
-      })
-      .catch(() => {
-        // Fallback or retry
-      });
+    // 1. Verify if user is already authenticated
+    const savedToken = localStorage.getItem('tezmc_auth_token');
+    if (savedToken) {
+      setAuthToken(savedToken);
+      setIsAuthenticated(true);
+    }
+  }, []);
 
-    // 2. Fetch Initial State
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    // 2. Fetch Initial State when authenticated
     refreshState();
 
     // 3. Connect WebSocket for live telemetry
@@ -81,7 +83,7 @@ export default function App() {
     return () => {
       socket.disconnect();
     };
-  }, []);
+  }, [isAuthenticated]);
 
   const refreshState = async () => {
     try {
@@ -216,119 +218,114 @@ export default function App() {
     refreshState();
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem('tezmc_auth_token');
+    setAuthToken('');
+    setIsAuthenticated(false);
+  };
+
+  if (!isAuthenticated) {
+    return (
+      <BrutalistLogin
+        onLogin={(token) => {
+          setAuthToken(token);
+          setIsAuthenticated(true);
+        }}
+      />
+    );
+  }
+
   return (
-    <div className="flex h-screen bg-background text-slate-100 overflow-hidden font-sans">
+    <div className="flex h-screen bg-[#050505] text-white overflow-hidden font-mono select-none">
       {/* Sidebar Navigation */}
-      <aside className="w-64 bg-[#0c0e15] border-r border-border flex flex-col justify-between p-4">
+      <aside className="w-64 bg-black border-r-2 border-zinc-800 flex flex-col justify-between p-4 z-20">
         <div>
-          {/* TEZMC Brand Header */}
-          <div className="flex items-center gap-3 px-3 py-4 mb-6 border-b border-border">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-700 flex items-center justify-center font-black text-white text-lg shadow-lg shadow-emerald-500/20">
-              T
+          {/* TEZMC Brand Header with Logo */}
+          <div className="flex items-center gap-3 px-2 py-4 mb-6 border-b-2 border-zinc-800">
+            <div className="border-2 border-emerald-500 shadow-[3px_3px_0px_0px_#ffffff] bg-black p-1 flex-shrink-0">
+              <img
+                src="/logo.png"
+                alt="TEZMC"
+                className="w-8 h-8 object-contain"
+                onError={(e) => {
+                  (e.target as HTMLElement).style.display = 'none';
+                }}
+              />
             </div>
-            <div>
-              <h1 className="font-extrabold text-white text-base tracking-wider leading-tight">TEZMC</h1>
-              <span className="text-[10px] text-emerald-400 font-mono tracking-tight uppercase">Autonomous Gaming</span>
+            <div className="overflow-hidden">
+              <h1 className="font-black text-white text-base tracking-widest leading-none uppercase">TEZMC</h1>
+              <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider block mt-1">
+                [LIVE OPS]
+              </span>
             </div>
           </div>
 
           {/* Navigation Links */}
-          <nav className="space-y-1.5">
-            <button
-              onClick={() => setActiveTab('overview')}
-              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                activeTab === 'overview'
-                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
-                  : 'text-slate-400 hover:text-white hover:bg-[#131622]'
-              }`}
-            >
-              <LayoutDashboard className="w-4 h-4" /> Overview
-            </button>
-
-            <button
-              onClick={() => setActiveTab('adapters')}
-              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                activeTab === 'adapters'
-                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
-                  : 'text-slate-400 hover:text-white hover:bg-[#131622]'
-              }`}
-            >
-              <Gamepad2 className="w-4 h-4" /> Game Adapters
-            </button>
-
-            <button
-              onClick={() => setActiveTab('sessions')}
-              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                activeTab === 'sessions'
-                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
-                  : 'text-slate-400 hover:text-white hover:bg-[#131622]'
-              }`}
-            >
-              <PlaySquare className="w-4 h-4" /> Sessions
-            </button>
-
-            <button
-              onClick={() => setActiveTab('streaming')}
-              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                activeTab === 'streaming'
-                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
-                  : 'text-slate-400 hover:text-white hover:bg-[#131622]'
-              }`}
-            >
-              <Radio className="w-4 h-4" /> Streaming
-            </button>
-
-            <button
-              onClick={() => setActiveTab('scheduler')}
-              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                activeTab === 'scheduler'
-                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
-                  : 'text-slate-400 hover:text-white hover:bg-[#131622]'
-              }`}
-            >
-              <Calendar className="w-4 h-4" /> Scheduler
-            </button>
-
-            <button
-              onClick={() => setActiveTab('settings')}
-              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                activeTab === 'settings'
-                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
-                  : 'text-slate-400 hover:text-white hover:bg-[#131622]'
-              }`}
-            >
-              <SettingsIcon className="w-4 h-4" /> Settings
-            </button>
+          <nav className="space-y-2">
+            {[
+              { id: 'overview', label: '[01] OVERVIEW', icon: LayoutDashboard },
+              { id: 'adapters', label: '[02] ADAPTERS', icon: Gamepad2 },
+              { id: 'sessions', label: '[03] SESSIONS', icon: PlaySquare },
+              { id: 'streaming', label: '[04] STREAMING', icon: Radio },
+              { id: 'scheduler', label: '[05] SCHEDULER', icon: Calendar },
+              { id: 'settings', label: '[06] SETTINGS', icon: SettingsIcon }
+            ].map((item) => {
+              const Icon = item.icon;
+              const isActive = activeTab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveTab(item.id as any)}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 text-xs font-mono font-bold tracking-wider uppercase border-2 transition-all cursor-pointer ${
+                    isActive
+                      ? 'bg-emerald-500 text-black border-white shadow-[3px_3px_0px_0px_#ffffff]'
+                      : 'bg-zinc-950 text-zinc-400 hover:text-white border-zinc-800 hover:border-zinc-500 shadow-[2px_2px_0px_0px_#18181b]'
+                  }`}
+                >
+                  <Icon className="w-4 h-4 flex-shrink-0" />
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
           </nav>
         </div>
 
         {/* Footer info */}
-        <div className="pt-4 border-t border-border text-xs text-slate-500 space-y-1">
-          <div className="flex items-center gap-1.5 text-slate-400 font-mono">
-            <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-            Host: Ubuntu 24.04 LTS
+        <div className="pt-4 border-t-2 border-zinc-800 text-[10px] text-zinc-500 space-y-1 font-mono">
+          <div className="flex items-center gap-2 text-zinc-300 font-bold">
+            <span className="w-2 h-2 bg-emerald-400 border border-black"></span>
+            <span>HOST: UBUNTU 22.04</span>
           </div>
-          <p>TEZMC Daemon &bull; 24/7 Autonomous</p>
+          <p className="text-zinc-500 uppercase">TEZMC • 24/7 UNATTENDED</p>
         </div>
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col overflow-hidden">
+      <main className="flex-1 flex flex-col overflow-hidden bg-[#08080a] bg-[radial-gradient(#1f1f23_1px,transparent_1px)] [background-size:24px_24px]">
         {/* Top Header */}
-        <header className="h-16 border-b border-border bg-[#0c0e15]/80 backdrop-blur-md px-6 flex items-center justify-between">
+        <header className="h-16 border-b-2 border-zinc-800 bg-black px-6 flex items-center justify-between z-10">
           <div className="flex items-center gap-3">
-            <span className="text-sm font-bold text-white uppercase tracking-wider">
+            <span className="text-xs font-black text-black bg-emerald-400 px-2.5 py-1 border border-black uppercase tracking-widest shadow-[2px_2px_0px_0px_#ffffff]">
               {activeTab}
             </span>
-            <span className="text-slate-600">/</span>
-            <span className="text-xs font-mono text-emerald-400">TEZMC Live Ops</span>
+            <span className="text-zinc-600 font-bold">/</span>
+            <span className="text-xs font-mono text-zinc-400 tracking-wider">TEZMC COMMAND CENTER</span>
           </div>
 
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 px-3 py-1 bg-[#121520] border border-border rounded-full text-xs">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span className="text-slate-300 font-mono">CORE: ONLINE</span>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 px-3 py-1 bg-zinc-950 border border-zinc-800 text-xs font-mono">
+              <span className="w-2 h-2 bg-emerald-400 animate-pulse inline-block"></span>
+              <span className="text-zinc-300 font-bold uppercase tracking-wider">CORE: ONLINE</span>
             </div>
+
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-red-950/60 hover:bg-red-600 text-red-200 hover:text-black border-2 border-red-500 hover:border-black text-xs font-mono font-black uppercase tracking-wider shadow-[2px_2px_0px_0px_#ffffff] transition-all cursor-pointer"
+              title="Lock Dashboard Session"
+            >
+              <Lock className="w-3.5 h-3.5" />
+              <span>LOCK</span>
+            </button>
           </div>
         </header>
 
