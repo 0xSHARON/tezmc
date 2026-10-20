@@ -1,6 +1,11 @@
 import { Bot } from 'mineflayer';
-import { pathfinder, Movements, goals } from 'mineflayer-pathfinder';
+import pathfinderPkg from 'mineflayer-pathfinder';
 import { GameProgress } from '@autoplay/shared';
+
+const pathfinderModule = pathfinderPkg as any;
+const pathfinder = pathfinderModule.pathfinder || pathfinderModule.default?.pathfinder || pathfinderModule;
+const Movements = pathfinderModule.Movements || pathfinderModule.default?.Movements;
+const goals = pathfinderModule.goals || pathfinderModule.default?.goals;
 
 export interface BoundedExplorationConfig {
   center: { x: number; y: number; z: number };
@@ -10,7 +15,7 @@ export interface BoundedExplorationConfig {
 export class NavigationEngine {
   private bot: Bot;
   private config: BoundedExplorationConfig;
-  private movements: Movements | null = null;
+  private movements: any = null;
   private isExploring = false;
   private explorationTimer: NodeJS.Timeout | null = null;
   private lastPosition: { x: number; y: number; z: number } | null = null;
