@@ -1,0 +1,8 @@
+packages:
+  - 'apps/*'
+  - 'packages/*'
+  - 'packages/game-adapters/*'
+  - 'services/*'
+allowBuilds:
+  better-sqlite3: true
+  esbuild: true

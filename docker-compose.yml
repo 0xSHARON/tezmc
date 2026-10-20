@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  autoplay-core:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: autoplay-ai-core
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+      - "3007:3007"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DATABASE_URL=file:/app/data/autoplay.sqlite
+      - CAPTURE_SOURCE_TYPE=test_pattern
+    volumes:
+      - autoplay_data:/app/data
+      - autoplay_logs:/app/logs
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: autoplay-ai-dashboard
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    command: ["pnpm", "--filter", "@autoplay/dashboard", "run", "dev", "--host"]
+    depends_on:
+      - autoplay-core
+
+volumes:
+  autoplay_data:
+  autoplay_logs:

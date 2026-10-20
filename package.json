@@ -1,0 +1,37 @@
+{
+  "name": "autoplay-ai",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AutoPlay AI — Autonomous Game Bot & Live-Streaming Production Platform",
+  "scripts": {
+    "build": "pnpm -r run build",
+    "dev": "pnpm --filter @autoplay/api run dev",
+    "dev:dashboard": "pnpm --filter @autoplay/dashboard run dev",
+    "start": "node apps/api/dist/index.js",
+    "test": "vitest run",
+    "lint": "tsc --noEmit"
+  },
+  "keywords": [
+    "autonomous-gaming",
+    "mineflayer",
+    "youtube-live",
+    "ffmpeg",
+    "obs",
+    "game-streaming"
+  ],
+  "author": "AutoPlay AI Core Team",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^22.10.2",
+    "express": "^5.3.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  }
+}
