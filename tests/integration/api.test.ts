@@ -1,8 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import http from 'node:http';
 import express from 'express';
-import { Server as SocketIOServer } from 'socket.io';
-import { AdapterRegistry } from '@autoplay/adapter-sdk';
+import { AdapterRegistry } from '@autoplay/game-adapter-sdk';
 import { MockMinecraftAdapter } from '@autoplay/adapter-minecraft-java';
 import { StreamingManager } from '@autoplay/streaming';
 import { SessionStateMachine } from '@autoplay/session-manager';
@@ -30,7 +29,7 @@ describe('AutoPlay AI API Integration Tests', () => {
     const monitoringService = new MonitoringService();
     const schedulerService = new SchedulerService(sessionMachine);
 
-    app.use('/api/v1', createApiRouter(sessionMachine, streamingManager, monitoringService, schedulerService));
+    app.use('/api/v1', createApiRouter(sessionMachine, streamingManager, monitoringService, schedulerService) as any);
 
     server = http.createServer(app);
     await new Promise<void>((resolve) => {

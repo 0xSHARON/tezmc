@@ -9,6 +9,7 @@ export default defineConfig({
     alias: {
       '@autoplay/shared': path.resolve(__dirname, 'packages/shared/src/index.ts'),
       '@autoplay/adapter-sdk': path.resolve(__dirname, 'packages/game-adapters/adapter-sdk/src/index.ts'),
+      '@autoplay/game-adapter-sdk': path.resolve(__dirname, 'packages/game-adapters/adapter-sdk/src/index.ts'),
       '@autoplay/adapter-minecraft-java': path.resolve(__dirname, 'packages/game-adapters/minecraft-java/src/index.ts'),
       '@autoplay/streaming': path.resolve(__dirname, 'packages/streaming/src/index.ts'),
       '@autoplay/capture': path.resolve(__dirname, 'packages/capture/src/index.ts'),

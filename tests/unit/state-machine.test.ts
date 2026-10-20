@@ -33,7 +33,8 @@ describe('SessionStateMachine', () => {
         botName: 'TestBot',
         exploreRadius: 20
       },
-      maxHours: 1
+      maxHours: 1,
+      alwaysOn: false
     });
 
     const transitions = sm.getTransitions();
