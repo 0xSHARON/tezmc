@@ -390,9 +390,15 @@ export class PokemonRedEngine extends EventEmitter {
   private startHttpServer(port: number): Promise<void> {
     return new Promise((resolve) => {
       this.server = http.createServer((req, res) => {
-        const url = req.url || '/';
+        let rawUrl = req.url || '/';
+        if (rawUrl.startsWith('/pokemon/')) {
+          rawUrl = rawUrl.substring('/pokemon'.length);
+        } else if (rawUrl === '/pokemon') {
+          rawUrl = '/';
+        }
+        const pathname = rawUrl.split('?')[0];
 
-        if (url.startsWith('/screen')) {
+        if (pathname === '/screen' || pathname === '/screen.jpg' || pathname.startsWith('/screen')) {
           const proxyReq = http.request({
             hostname: '127.0.0.1',
             port: 3010,
@@ -415,7 +421,7 @@ export class PokemonRedEngine extends EventEmitter {
           return;
         }
 
-        if (url.startsWith('/stream')) {
+        if (pathname === '/stream' || pathname.startsWith('/stream')) {
           const proxyReq = http.request({
             hostname: '127.0.0.1',
             port: 3010,
@@ -437,7 +443,7 @@ export class PokemonRedEngine extends EventEmitter {
           return;
         }
 
-        if (url === '/state') {
+        if (pathname === '/state' || pathname.startsWith('/state')) {
           // Attempt to pull latest RAM telemetry from PyBoy
           const stateReq = http.request({
             hostname: '127.0.0.1',
@@ -465,7 +471,7 @@ export class PokemonRedEngine extends EventEmitter {
           return;
         }
 
-        if (url === '/rom' && this.romBuffer) {
+        if (pathname === '/rom' && this.romBuffer) {
           res.writeHead(200, {
             'Content-Type': 'application/octet-stream',
             'Content-Length': this.romBuffer.length,
@@ -475,7 +481,7 @@ export class PokemonRedEngine extends EventEmitter {
           return;
         }
 
-        if (url === '/action' && req.method === 'POST') {
+        if (pathname === '/action' && req.method === 'POST') {
           let body = '';
           req.on('data', chunk => body += chunk);
           req.on('end', () => {
@@ -520,20 +526,26 @@ export class PokemonRedEngine extends EventEmitter {
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body {
-      width: 1280px;
-      height: 720px;
+      width: 100%;
+      height: 100%;
       overflow: hidden;
       background: #060813;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace, sans-serif;
       user-select: none;
-      cursor: none !important;
     }
     #studio-canvas {
       width: 1280px;
       height: 720px;
+      max-width: 100vw;
+      max-height: 100vh;
+      aspect-ratio: 16 / 9;
       display: block;
       background: #060813;
-      cursor: none !important;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+      cursor: pointer;
     }
   </style>
 </head>
@@ -543,6 +555,7 @@ export class PokemonRedEngine extends EventEmitter {
   <script>
     const canvas = document.getElementById('studio-canvas');
     const ctx = canvas.getContext('2d');
+    const basePath = window.location.pathname.endsWith('/') ? window.location.pathname : window.location.pathname + '/';
 
     // Bulletproof polyfills
     function safeRoundRect(c, x, y, w, h, r) {
@@ -563,20 +576,18 @@ export class PokemonRedEngine extends EventEmitter {
 
     let state = {
       trainerName: 'RED',
-      currentMap: 'Pallet Town',
-      badges: ['Boulder Badge'],
+      currentMap: "Player's House 2F",
+      badges: [],
       party: [
-        { name: 'CHARMANDER', level: 14, currentHp: 38, maxHp: 38, status: 'OK' },
-        { name: 'PIDGEY', level: 10, currentHp: 27, maxHp: 27, status: 'OK' },
-        { name: 'PIKACHU', level: 12, currentHp: 32, maxHp: 32, status: 'OK' }
+        { name: 'CHARMANDER', level: 5, currentHp: 20, maxHp: 20, status: 'OK' }
       ],
-      money: 3240,
-      pokedexOwned: 3,
-      pokedexSeen: 12,
+      money: 3000,
+      pokedexOwned: 1,
+      pokedexSeen: 3,
       stepCount: 420,
       mode: 'anarchy',
       recentCommands: [],
-      lastAction: 'TRAINER EXPLORING PALLET TOWN',
+      lastAction: 'AUTONOMOUS EXPLORATION ACTIVE',
       isBattle: false,
       battleEnemy: null,
       romLoaded: true,
@@ -587,10 +598,64 @@ export class PokemonRedEngine extends EventEmitter {
     let highlightedButton = '';
     let highlightTimer = 0;
 
+    // Send action to backend
+    async function sendAction(btn, sender = 'Viewer') {
+      try {
+        highlightedButton = btn.toLowerCase();
+        highlightTimer = 20;
+        await fetch(basePath + 'action', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: btn, sender: sender })
+        });
+      } catch (e) {}
+    }
+
+    // Keyboard support: Arrows / WASD, Z (A), X (B), Enter (Start), Shift/Space (Select)
+    window.addEventListener('keydown', (e) => {
+      let act = null;
+      const k = e.key.toLowerCase();
+      if (k === 'arrowup' || k === 'w') act = 'up';
+      else if (k === 'arrowdown' || k === 's') act = 'down';
+      else if (k === 'arrowleft' || k === 'a') act = 'left';
+      else if (k === 'arrowright' || k === 'd') act = 'right';
+      else if (k === 'z' || k === 'j') act = 'a';
+      else if (k === 'x' || k === 'k') act = 'b';
+      else if (k === 'enter') act = 'start';
+      else if (k === 'shift' || k === ' ') act = 'select';
+      if (act) {
+        e.preventDefault();
+        sendAction(act, 'WebPlayer');
+      }
+    });
+
+    // Mouse / Touch click on canvas hitboxes
+    canvas.addEventListener('click', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = 1280 / rect.width;
+      const scaleY = 720 / rect.height;
+      const cx = (e.clientX - rect.left) * scaleX;
+      const cy = (e.clientY - rect.top) * scaleY;
+
+      // D-Pad hitboxes (center ~175, 470)
+      if (cx >= 155 && cx <= 195 && cy >= 420 && cy <= 460) sendAction('up');
+      else if (cx >= 155 && cx <= 195 && cy >= 480 && cy <= 520) sendAction('down');
+      else if (cx >= 115 && cx <= 155 && cy >= 450 && cy <= 490) sendAction('left');
+      else if (cx >= 195 && cx <= 235 && cy >= 450 && cy <= 490) sendAction('right');
+      // B button (225, 535, r=20)
+      else if (Math.hypot(cx - 225, cy - 535) <= 25) sendAction('b');
+      // A button (270, 505, r=20)
+      else if (Math.hypot(cx - 270, cy - 505) <= 25) sendAction('a');
+      // Select (145, 590, w=28, h=10)
+      else if (cx >= 140 && cx <= 175 && cy >= 580 && cy <= 610) sendAction('select');
+      // Start (195, 590, w=28, h=10)
+      else if (cx >= 190 && cx <= 225 && cy >= 580 && cy <= 610) sendAction('start');
+    });
+
     // Fetch state from backend at 20Hz
     async function syncState() {
       try {
-        const res = await fetch('/state');
+        const res = await fetch(basePath + 'state');
         if (res.ok) {
           const data = await res.json();
           if (data.recentCommands && data.recentCommands[0]) {
@@ -624,7 +689,7 @@ export class PokemonRedEngine extends EventEmitter {
       img.onerror = () => {
         setTimeout(fetchNextPyBoyFrame, 150);
       };
-      img.src = '/screen.jpg?t=' + Date.now();
+      img.src = basePath + 'screen.jpg?t=' + Date.now();
     }
     fetchNextPyBoyFrame();
 

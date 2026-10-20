@@ -26,12 +26,17 @@ except (ImportError, ModuleNotFoundError):
     WindowEvent = None
 
 # Pokémon Red RAM Addresses
+ADDR_BGP = 0xFF47
+ADDR_FONT_LOADED = 0xCFC4
+ADDR_CURRENT_MAP = 0xD35E
+ADDR_PLAYER_X = 0xD362
+ADDR_PLAYER_Y = 0xD361
+ADDR_BATTLE = 0xD057
 ADDR_PLAYER_NAME = 0xD158
 ADDR_RIVAL_NAME = 0xD34A
 ADDR_PARTY_COUNT = 0xD163
 ADDR_PARTY_DATA = 0xD16B
 ADDR_BADGES = 0xD356
-ADDR_CURRENT_MAP = 0xD35E
 ADDR_MONEY = 0xD347
 ADDR_TEXT_ID = 0xC100
 
@@ -50,11 +55,12 @@ MAP_NAMES = {
     0x0D: "Route 2",
     0x0E: "Route 3",
     0x0F: "Route 4",
-    0x26: "Oak's Lab",
-    0x27: "Player's House 1F",
-    0x28: "Player's House 2F",
-    0x29: "Rival's House",
-    0x2A: "Viridian Pokecenter",
+    0x25: "Player's House 1F",
+    0x26: "Player's House 2F",
+    0x27: "Rival's House",
+    0x28: "Oak's Lab",
+    0x29: "Viridian Pokecenter",
+    0x2A: "Viridian Pokemart",
     0x33: "Mt. Moon",
 }
 
@@ -109,6 +115,10 @@ class EmulationServer:
         self.last_action_desc = "GAME INITIALIZED"
         self.copilot_tick = 0
         self.state_file = rom_path.replace(".gb", ".state")
+        self.last_pos = (0, 0, 0)
+        self.stuck_counter = 0
+        self.was_dialogue = False
+        self.starter_picked = False
 
     def start(self):
         if not PYBOY_AVAILABLE:
@@ -146,9 +156,9 @@ class EmulationServer:
                 self.pyboy.tick()
                 self.copilot_tick += 1
 
-                # Co-pilot fallback if idle for > 4 seconds
+                # Autonomous Intelligent Bot takes action if viewer idle > 1.5s
                 idle_sec = time.time() - self.last_input_time
-                if idle_sec > 4.0 and self.copilot_tick % 45 == 0:
+                if idle_sec > 1.5 and self.copilot_tick % 16 == 0:
                     self._ai_copilot_step()
 
                 # Update screen buffer every 2 frames (~30 FPS rendering)
@@ -169,17 +179,165 @@ class EmulationServer:
                 time.sleep(sleep_needed)
 
     def _ai_copilot_step(self):
-        # Progress intro cutscene / dialogue / world navigation
-        btn = "a"
-        if self.copilot_tick % 180 == 0:
-            btn = "start"
-        elif self.copilot_tick % 90 == 0:
-            btn = "b"
-        elif self.copilot_tick % 60 == 0:
-            btn = ["up", "down", "left", "right"][((self.copilot_tick // 60) % 4)]
+        """
+        Intelligent state-aware Pokémon Red autonomous gameplay logic.
+        Inspects exact Game Boy RAM addresses to progress through cutscenes, menus,
+        battles, and overworld navigation without loops or getting stuck.
+        """
+        if not self.pyboy:
+            return
 
-        self.pyboy.button(btn, 8)
-        self.last_action_desc = f"[AI CO-PILOT] PRESSED [{btn.upper()}]"
+        mem = self.pyboy.memory
+        bgp = mem[ADDR_BGP]
+        font_loaded = mem[ADDR_FONT_LOADED] & 1
+        map_id = mem[ADDR_CURRENT_MAP]
+        x = mem[ADDR_PLAYER_X]
+        y = mem[ADDR_PLAYER_Y]
+        in_battle = mem[ADDR_BATTLE]
+        party_count = mem[ADDR_PARTY_COUNT]
+        player_name_byte = mem[ADDR_PLAYER_NAME]
+        rival_name_byte = mem[ADDR_RIVAL_NAME]
+
+        # 1. Screen fade protection: wait for scene to fade in
+        if bgp == 0:
+            return
+
+        current_pos = (map_id, x, y)
+        if current_pos == self.last_pos:
+            self.stuck_counter += 1
+        else:
+            self.stuck_counter = 0
+            self.last_pos = current_pos
+
+        # Check if in intro/naming sequence
+        in_intro = (player_name_byte in (0, 0x50) or rival_name_byte in (0, 0x50))
+
+        btn = None
+
+        # 2. Battle State: Auto-fight and select moves
+        if in_battle != 0:
+            self.was_dialogue = False
+            btn = "a"
+
+        # 3. Text box or Menu State
+        elif font_loaded != 0:
+            self.was_dialogue = True
+            if in_intro:
+                # Title screen or name selection
+                if self.copilot_tick % 240 == 0:
+                    btn = "start"
+                elif self.stuck_counter > 25 and self.copilot_tick % 40 == 0:
+                    btn = "down" # Move cursor from "NEW NAME" to "RED" / "BLUE"
+                else:
+                    btn = "a"
+            elif map_id == 0x28 and party_count > 0 and not self.starter_picked:
+                # Starter nickname prompt -> press B to decline nickname
+                self.starter_picked = True
+                btn = "b"
+            elif self.stuck_counter > 40:
+                # Menu stuck watchdog -> alternate B (dismiss) and A
+                btn = "b" if (self.copilot_tick % 32 == 0) else "a"
+            else:
+                btn = "a"
+
+        # 4. Dialogue just closed -> step away immediately to avoid reopening on interactive tiles!
+        elif self.was_dialogue:
+            self.was_dialogue = False
+            if map_id == 0x26 and y <= 6:
+                btn = "down" # Step away from TV/SNES
+            elif map_id == 0x28 and party_count == 0:
+                btn = "up"
+            else:
+                btn = "down"
+
+        # 5. Anti-Stuck in Overworld
+        elif self.stuck_counter > 18:
+            jiggle = ["down", "right", "left", "up"]
+            btn = jiggle[(self.stuck_counter // 5) % 4]
+            if self.stuck_counter > 40 and self.stuck_counter % 12 == 0:
+                btn = "b"
+
+        # 6. Overworld Map Navigation
+        elif map_id == 0x26:
+            # Red's House 2F (Bedroom) -> Stairs at (7, 1)
+            if y < 7 and x < 6:
+                btn = "down" # Step away from TV/SNES and bed
+            elif x < 7:
+                btn = "right"
+            elif y > 1:
+                btn = "up"
+            else:
+                btn = "right" # Step onto stairs
+
+        elif map_id == 0x25:
+            # Red's House 1F (Living Room) -> Door at (3, 7) or (2, 7)
+            if x > 3:
+                btn = "left"
+            elif y < 7:
+                btn = "down"
+            else:
+                btn = "down" # Step on exit door mat
+
+        elif map_id == 0x00:
+            # Pallet Town
+            if party_count == 0:
+                # Head North towards tall grass at (10, 0) to trigger Prof Oak
+                if x < 10:
+                    btn = "right"
+                elif x > 11:
+                    btn = "left"
+                else:
+                    btn = "up" # Walk into grass: Oak cutscene triggers!
+            else:
+                # Starter obtained! Head North into Route 1
+                if x < 10:
+                    btn = "right"
+                elif x > 10:
+                    btn = "left"
+                else:
+                    btn = "up"
+
+        elif map_id == 0x28:
+            # Oak's Lab
+            if party_count == 0:
+                # Walk to Charmander's Pokeball at (6, 3)
+                if y > 4:
+                    btn = "up"
+                elif y < 4:
+                    btn = "down"
+                elif x < 6:
+                    btn = "right"
+                elif x > 6:
+                    btn = "left"
+                else:
+                    btn = "a" # Inspect Pokeball & receive starter!
+            else:
+                # Starter obtained: walk down to exit door at (4, 11) / (5, 11)
+                if x < 4:
+                    btn = "right"
+                elif x > 5:
+                    btn = "left"
+                else:
+                    btn = "down" # Rival battle triggers on the way
+
+        elif map_id == 0x0C:
+            # Route 1 -> Walk North towards Viridian City
+            if x < 8:
+                btn = "right"
+            elif x > 13:
+                btn = "left"
+            else:
+                btn = "up"
+
+        else:
+            # Default exploration
+            dirs = ["up", "down", "left", "right"]
+            btn = dirs[(self.copilot_tick // 40) % 4]
+
+        if btn:
+            self.pyboy.button(btn, 10)
+            map_label = MAP_NAMES.get(map_id, f"Map {map_id:#04x}")
+            self.last_action_desc = f"[AI BOT] ACTION [{btn.upper()}] ({map_label} ({x},{y}))"
 
     def _save_state(self):
         with self.lock:
