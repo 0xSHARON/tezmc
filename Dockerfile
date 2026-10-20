@@ -33,7 +33,7 @@ COPY services/scheduler/package.json ./services/scheduler/
 COPY services/monitoring/package.json ./services/monitoring/
 
 # Install dependencies
-RUN pnpm install --frozen-lockfile=false
+RUN pnpm install --frozen-lockfile=false --dangerously-allow-all-builds
 
 # Copy source trees
 COPY . .
