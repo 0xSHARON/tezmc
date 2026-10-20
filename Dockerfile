@@ -26,6 +26,7 @@ COPY packages/game-adapters/minecraft-java/package.json ./packages/game-adapters
 COPY packages/streaming/package.json ./packages/streaming/
 COPY packages/capture/package.json ./packages/capture/
 COPY packages/overlay/package.json ./packages/overlay/
+COPY packages/chat-interactivity/package.json ./packages/chat-interactivity/
 COPY packages/session-manager/package.json ./packages/session-manager/
 COPY services/scheduler/package.json ./services/scheduler/
 COPY services/monitoring/package.json ./services/monitoring/
