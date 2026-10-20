@@ -120,8 +120,11 @@ export const ChatMessageSchema = z.object({
   author: z.string(),
   message: z.string(),
   timestamp: z.number(),
-  badge: z.enum(['viewer', 'moderator', 'sponsor', 'vip']).default('viewer'),
-  isCommand: z.boolean().default(false)
+  badge: z.enum(['viewer', 'moderator', 'sponsor', 'vip', 'owner']).default('viewer'),
+  isCommand: z.boolean().default(false),
+  authorPhotoUrl: z.string().optional(),
+  superChatAmount: z.string().optional(),
+  source: z.string().optional().default('youtube')
 });
 
 export type ChatMessage = z.infer<typeof ChatMessageSchema>;

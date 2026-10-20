@@ -1,7 +1,7 @@
 import { EventEmitter } from 'node:events';
 import { ChatMessage, CommentaryItem, GameAdapter, GameProgress } from '@autoplay/shared';
 import { IChatProvider } from './types.js';
-import { MockChatProvider } from './ChatProvider.js';
+import { MockChatProvider, YouTubeLiveChatProvider, YouTubeChatOptions } from './ChatProvider.js';
 import { CommandRegistry } from './CommandRegistry.js';
 import { CommentatorEngine } from './CommentatorEngine.js';
 
@@ -15,7 +15,19 @@ export class ChatManager extends EventEmitter {
 
   constructor(provider?: IChatProvider) {
     super();
-    this.provider = provider || new MockChatProvider();
+
+    // Check if YouTube live stream is pre-configured via environment
+    if (!provider && (process.env.YOUTUBE_LIVE_URL || process.env.YOUTUBE_VIDEO_ID || process.env.YOUTUBE_API_KEY)) {
+      this.provider = new YouTubeLiveChatProvider({
+        apiKey: process.env.YOUTUBE_API_KEY,
+        liveUrl: process.env.YOUTUBE_LIVE_URL,
+        videoId: process.env.YOUTUBE_VIDEO_ID,
+        liveChatId: process.env.YOUTUBE_LIVE_CHAT_ID
+      });
+    } else {
+      this.provider = provider || new MockChatProvider();
+    }
+
     this.commandRegistry = new CommandRegistry();
     this.commentator = new CommentatorEngine();
 
@@ -53,6 +65,29 @@ export class ChatManager extends EventEmitter {
     });
   }
 
+  public async setProvider(newProvider: IChatProvider): Promise<void> {
+    if (this.provider) {
+      await this.provider.stop().catch(() => {});
+      (this.provider as any).removeAllListeners?.('message');
+    }
+
+    this.provider = newProvider;
+    this.setupListeners();
+    await this.provider.start();
+    this.emit('provider:changed', { providerId: this.provider.id });
+  }
+
+  public async connectYouTube(options: YouTubeChatOptions): Promise<boolean> {
+    const ytProvider = new YouTubeLiveChatProvider(options);
+    await this.setProvider(ytProvider);
+    return true;
+  }
+
+  public async useMock(): Promise<void> {
+    const mock = new MockChatProvider();
+    await this.setProvider(mock);
+  }
+
   public setActiveAdapter(adapter: GameAdapter | null): void {
     this.activeAdapter = adapter;
     if (adapter) {
@@ -70,9 +105,15 @@ export class ChatManager extends EventEmitter {
     await this.provider.stop();
   }
 
-  public injectMessage(author: string, message: string): ChatMessage {
-    if (this.provider instanceof MockChatProvider) {
-      return this.provider.injectMessage(author, message);
+  public injectMessage(
+    author: string,
+    message: string,
+    badge: 'viewer' | 'moderator' | 'sponsor' | 'vip' | 'owner' = 'viewer',
+    authorPhotoUrl?: string,
+    superChatAmount?: string
+  ): ChatMessage {
+    if (this.provider instanceof MockChatProvider || this.provider instanceof YouTubeLiveChatProvider) {
+      return (this.provider as any).injectMessage(author, message, badge, authorPhotoUrl, superChatAmount);
     }
 
     const msg: ChatMessage = {
@@ -80,8 +121,11 @@ export class ChatManager extends EventEmitter {
       author,
       message,
       timestamp: Date.now(),
-      badge: 'moderator',
-      isCommand: message.trim().startsWith('!')
+      badge,
+      isCommand: message.trim().startsWith('!'),
+      authorPhotoUrl,
+      superChatAmount,
+      source: 'youtube'
     };
     (this.provider as any).emit?.('message', msg);
     return msg;
@@ -101,5 +145,15 @@ export class ChatManager extends EventEmitter {
 
   public getProvider(): IChatProvider {
     return this.provider;
+  }
+
+  public getStatus() {
+    const isYouTube = this.provider instanceof YouTubeLiveChatProvider;
+    return {
+      providerId: this.provider.id,
+      isYouTube,
+      details: isYouTube ? (this.provider as YouTubeLiveChatProvider).getStatus() : null,
+      messageCount: this.chatHistory.length
+    };
   }
 }

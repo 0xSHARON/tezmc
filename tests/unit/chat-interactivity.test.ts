@@ -71,4 +71,41 @@ describe('Chat Interactivity & Viewer Commands', () => {
     await new Promise((r) => setTimeout(r, 50));
     expect(commandEmitted).toBe(true);
   });
+
+  it('extractYouTubeVideoId should parse different URL styles', async () => {
+    const { extractYouTubeVideoId } = await import('@autoplay/chat-interactivity');
+    expect(extractYouTubeVideoId('jfKfPfyJRdk')).toBe('jfKfPfyJRdk');
+    expect(extractYouTubeVideoId('https://www.youtube.com/watch?v=jfKfPfyJRdk')).toBe('jfKfPfyJRdk');
+    expect(extractYouTubeVideoId('https://youtu.be/jfKfPfyJRdk')).toBe('jfKfPfyJRdk');
+    expect(extractYouTubeVideoId('https://www.youtube.com/live/jfKfPfyJRdk?feature=share')).toBe('jfKfPfyJRdk');
+  });
+
+  it('YouTubeLiveChatProvider should format messages with YouTube badges and super chats', async () => {
+    const { YouTubeLiveChatProvider } = await import('@autoplay/chat-interactivity');
+    const yt = new YouTubeLiveChatProvider({ videoId: 'jfKfPfyJRdk' });
+
+    let received: any = null;
+    yt.on('message', (msg) => {
+      received = msg;
+    });
+
+    const msg = yt.injectMessage('GoldenFan', 'Great stream!', 'owner', 'https://avatar.com/1.jpg', '$20.00');
+    expect(msg.author).toBe('GoldenFan');
+    expect(msg.badge).toBe('owner');
+    expect(msg.source).toBe('youtube');
+    expect(msg.superChatAmount).toBe('$20.00');
+    expect(msg.authorPhotoUrl).toBe('https://avatar.com/1.jpg');
+    expect(received).toEqual(msg);
+  });
+
+  it('ChatManager should switch to YouTube chat and report status', async () => {
+    const chatManager = new ChatManager();
+    await chatManager.connectYouTube({ videoId: 'jfKfPfyJRdk' });
+
+    const status = chatManager.getStatus();
+    expect(status.isYouTube).toBe(true);
+    expect(status.providerId).toBe('youtube-live-chat');
+    expect(status.details?.videoId).toBe('jfKfPfyJRdk');
+  });
 });
+

@@ -219,6 +219,14 @@ export function createApiRouter(
   });
 
   // Viewer Chat & Commentary Endpoints
+  router.get('/chat/status', async (_req: Request, res: Response) => {
+    if (!chatManager) {
+      res.status(503).json({ error: 'Chat interactivity service unavailable' });
+      return;
+    }
+    res.json(chatManager.getStatus());
+  });
+
   router.get('/chat/history', async (_req: Request, res: Response) => {
     res.json({ chat: chatManager ? chatManager.getRecentChat() : [] });
   });
@@ -227,14 +235,47 @@ export function createApiRouter(
     res.json({ commentary: chatManager ? chatManager.getRecentCommentary() : [] });
   });
 
+  router.post('/chat/youtube', requireAuth, async (req: Request, res: Response) => {
+    if (!chatManager) {
+      res.status(503).json({ error: 'Chat interactivity service unavailable' });
+      return;
+    }
+    const { videoId, liveUrl, apiKey, liveChatId } = req.body || {};
+    try {
+      await chatManager.connectYouTube({ videoId, liveUrl, apiKey, liveChatId });
+      db.recordAuditLog('CHAT_YOUTUBE_CONNECT', 'chat', { videoId, liveUrl, hasApiKey: !!apiKey });
+      res.json({ success: true, status: chatManager.getStatus() });
+    } catch (err: any) {
+      res.status(400).json({ error: 'Failed to connect YouTube chat', message: err?.message || err });
+    }
+  });
+
+  router.post('/chat/mode', requireAuth, async (req: Request, res: Response) => {
+    if (!chatManager) {
+      res.status(503).json({ error: 'Chat interactivity service unavailable' });
+      return;
+    }
+    const { mode, ...options } = req.body || {};
+    try {
+      if (mode === 'youtube') {
+        await chatManager.connectYouTube(options);
+      } else {
+        await chatManager.useMock();
+      }
+      res.json({ success: true, mode, status: chatManager.getStatus() });
+    } catch (err: any) {
+      res.status(400).json({ error: 'Failed to switch chat mode', message: err?.message || err });
+    }
+  });
+
   router.post('/chat/message', async (req: Request, res: Response) => {
-    const { author = 'Viewer', message } = req.body || {};
+    const { author = 'YouTube Viewer', message, badge = 'viewer', authorPhotoUrl, superChatAmount } = req.body || {};
     if (!message || typeof message !== 'string') {
       res.status(400).json({ error: 'Message is required' });
       return;
     }
     if (chatManager) {
-      const msg = chatManager.injectMessage(author, message);
+      const msg = chatManager.injectMessage(author, message, badge, authorPhotoUrl, superChatAmount);
       res.json({ success: true, message: msg });
     } else {
       res.status(503).json({ error: 'Chat interactivity service unavailable' });

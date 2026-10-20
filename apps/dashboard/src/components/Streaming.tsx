@@ -15,7 +15,11 @@ import {
   Cpu,
   Power,
   RefreshCw,
-  Globe
+  Globe,
+  MessageSquare,
+  Send,
+  Tv,
+  Sparkles
 } from 'lucide-react';
 
 interface Destination {
@@ -94,10 +98,107 @@ export const Streaming: React.FC<StreamingProps> = ({
     }
   };
 
+  // YouTube Live Chat State
+  const [chatStatus, setChatStatus] = useState<any>(null);
+  const [ytVideoInput, setYtVideoInput] = useState<string>('');
+  const [ytApiKeyInput, setYtApiKeyInput] = useState<string>('');
+  const [connectingChat, setConnectingChat] = useState<boolean>(false);
+  const [recentChat, setRecentChat] = useState<any[]>([]);
+  const [testAuthor, setTestAuthor] = useState<string>('YouTube Viewer');
+  const [testMessage, setTestMessage] = useState<string>('!jump');
+  const [testBadge, setTestBadge] = useState<string>('sponsor');
+  const [testSuccess, setTestSuccess] = useState<boolean>(false);
+
+  const fetchChatStatus = async () => {
+    try {
+      const [statusRes, historyRes] = await Promise.all([
+        fetch('/api/v1/chat/status'),
+        fetch('/api/v1/chat/history')
+      ]);
+      if (statusRes.ok) {
+        const data = await statusRes.json();
+        setChatStatus(data);
+      }
+      if (historyRes.ok) {
+        const hData = await historyRes.json();
+        setRecentChat(hData.chat || []);
+      }
+    } catch (e) {
+      console.error('Failed to fetch chat status', e);
+    }
+  };
+
   useEffect(() => {
     fetchDestinations();
     fetchPresets();
+    fetchChatStatus();
+    const interval = setInterval(fetchChatStatus, 4000);
+    return () => clearInterval(interval);
   }, []);
+
+  const handleConnectYouTubeChat = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!ytVideoInput.trim()) return;
+
+    setConnectingChat(true);
+    try {
+      const res = await fetch('/api/v1/chat/youtube', {
+        method: 'POST',
+        headers: getAuthHeader(),
+        body: JSON.stringify({
+          videoId: ytVideoInput.trim(),
+          apiKey: ytApiKeyInput.trim() || undefined
+        })
+      });
+      if (res.ok) {
+        await fetchChatStatus();
+      }
+    } catch (e) {
+      console.error('Failed to connect YouTube chat', e);
+    } finally {
+      setConnectingChat(false);
+    }
+  };
+
+  const handleSwitchChatMode = async (mode: 'youtube' | 'mock') => {
+    try {
+      const res = await fetch('/api/v1/chat/mode', {
+        method: 'POST',
+        headers: getAuthHeader(),
+        body: JSON.stringify({ mode })
+      });
+      if (res.ok) {
+        await fetchChatStatus();
+      }
+    } catch (e) {
+      console.error('Failed to switch chat mode', e);
+    }
+  };
+
+  const handleSendTestMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!testMessage.trim()) return;
+
+    try {
+      const res = await fetch('/api/v1/chat/message', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          author: testAuthor || 'YouTube Viewer',
+          message: testMessage,
+          badge: testBadge,
+          source: 'youtube'
+        })
+      });
+      if (res.ok) {
+        setTestSuccess(true);
+        setTimeout(() => setTestSuccess(false), 2000);
+        await fetchChatStatus();
+      }
+    } catch (e) {
+      console.error('Failed to send test message', e);
+    }
+  };
 
   const handlePlatformChange = (p: string) => {
     setNewPlatform(p);
@@ -485,6 +586,208 @@ export const Streaming: React.FC<StreamingProps> = ({
               <option value="2500k">2500 kbps (Standard 720p)</option>
               <option value="4500k">4500 kbps (High Quality 1080p)</option>
             </select>
+          </div>
+        </div>
+      </div>
+
+      {/* YouTube Live Chat & Overlay Controller */}
+      <div className="bg-black border-2 border-zinc-800 p-6 shadow-[4px_4px_0px_0px_#ffffff]">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+          <div>
+            <div className="flex items-center gap-2">
+              <div className="w-5 h-3.5 bg-red-600 rounded flex items-center justify-center">
+                <div className="w-0 h-0 border-t-2 border-t-transparent border-b-2 border-b-transparent border-l-4 border-l-white"></div>
+              </div>
+              <h3 className="text-sm font-black tracking-widest uppercase">YOUTUBE LIVE CHAT & OVERLAY FEED</h3>
+              <span className={`px-2 py-0.5 text-[10px] font-bold border ${
+                chatStatus?.isYouTube
+                  ? 'bg-red-950 text-red-400 border-red-700'
+                  : 'bg-zinc-900 text-zinc-400 border-zinc-700'
+              }`}>
+                {chatStatus?.isYouTube ? 'YOUTUBE LIVE CHAT ACTIVE' : 'SIMULATION STANDBY'}
+              </span>
+            </div>
+            <p className="text-xs text-zinc-400 mt-1">
+              Viewer messages from YouTube Live appear directly on the stream's HTML5 overlay at <code className="text-emerald-400 font-bold">/overlay</code> and trigger interactive bot commands.
+            </p>
+          </div>
+
+          {/* Chat Mode Switcher */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => handleSwitchChatMode('youtube')}
+              className={`px-3 py-1.5 text-xs font-bold uppercase border cursor-pointer ${
+                chatStatus?.isYouTube
+                  ? 'bg-red-600 text-black border-white shadow-[2px_2px_0px_0px_#ffffff]'
+                  : 'bg-zinc-950 text-zinc-400 border-zinc-800 hover:text-white'
+              }`}
+            >
+              YouTube Live
+            </button>
+            <button
+              onClick={() => handleSwitchChatMode('mock')}
+              className={`px-3 py-1.5 text-xs font-bold uppercase border cursor-pointer ${
+                !chatStatus?.isYouTube
+                  ? 'bg-emerald-500 text-black border-white shadow-[2px_2px_0px_0px_#ffffff]'
+                  : 'bg-zinc-950 text-zinc-400 border-zinc-800 hover:text-white'
+              }`}
+            >
+              Mock Simulator
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Left: Connect YouTube Live Stream */}
+          <form onSubmit={handleConnectYouTubeChat} className="space-y-4 bg-zinc-950 p-4 border border-zinc-800">
+            <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+              <Tv className="w-3.5 h-3.5 text-red-400" />
+              Connect YouTube Stream Video
+            </h4>
+
+            <div>
+              <label className="block text-[11px] font-semibold text-zinc-400 mb-1">
+                YOUTUBE LIVE STREAM URL OR VIDEO ID
+              </label>
+              <input
+                type="text"
+                placeholder="https://youtube.com/live/xxx or Video ID (11 chars)"
+                value={ytVideoInput}
+                onChange={(e) => setYtVideoInput(e.target.value)}
+                className="w-full bg-black border border-zinc-800 p-2 text-xs text-white focus:outline-none focus:border-red-500 font-mono"
+              />
+              <span className="text-[10px] text-zinc-500 block mt-1">
+                Enter your live broadcast URL so TEZMC extracts the active live chat ID.
+              </span>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-semibold text-zinc-400 mb-1 flex items-center justify-between">
+                <span>GOOGLE API KEY (OPTIONAL)</span>
+                <span className="text-[10px] text-emerald-400 flex items-center gap-1 font-normal">
+                  <ShieldCheck className="w-3 h-3" /> Redacted
+                </span>
+              </label>
+              <input
+                type="password"
+                placeholder="Optional: Google Cloud API Key for official YouTube API polling"
+                value={ytApiKeyInput}
+                onChange={(e) => setYtApiKeyInput(e.target.value)}
+                className="w-full bg-black border border-zinc-800 p-2 text-xs text-amber-300 focus:outline-none focus:border-red-500 font-mono"
+              />
+            </div>
+
+            <div className="pt-2 flex justify-end">
+              <button
+                type="submit"
+                disabled={connectingChat}
+                className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-500 disabled:opacity-50 text-black border border-white text-xs font-bold uppercase tracking-wider shadow-[2px_2px_0px_0px_#ffffff] cursor-pointer"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${connectingChat ? 'animate-spin' : ''}`} />
+                {connectingChat ? 'CONNECTING...' : 'CONNECT YOUTUBE CHAT'}
+              </button>
+            </div>
+          </form>
+
+          {/* Right: Live Interactive Test Injection */}
+          <form onSubmit={handleSendTestMessage} className="space-y-4 bg-zinc-950 p-4 border border-zinc-800">
+            <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+              <Send className="w-3.5 h-3.5 text-sky-400" />
+              Test Message / Overlay Preview
+            </h4>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[11px] font-semibold text-zinc-400 mb-1">AUTHOR NAME</label>
+                <input
+                  type="text"
+                  value={testAuthor}
+                  onChange={(e) => setTestAuthor(e.target.value)}
+                  className="w-full bg-black border border-zinc-800 p-2 text-xs text-white focus:outline-none focus:border-sky-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-zinc-400 mb-1">ROLE BADGE</label>
+                <select
+                  value={testBadge}
+                  onChange={(e) => setTestBadge(e.target.value)}
+                  className="w-full bg-black border border-zinc-800 p-2 text-xs text-white focus:outline-none focus:border-sky-500"
+                >
+                  <option value="viewer">VIEWER</option>
+                  <option value="sponsor">★ MEMBER (SPONSOR)</option>
+                  <option value="moderator">🔧 MODERATOR</option>
+                  <option value="owner">👑 OWNER</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-semibold text-zinc-400 mb-1">
+                MESSAGE (TRY COMMANDS LIKE !jump, !coords, !status)
+              </label>
+              <input
+                type="text"
+                value={testMessage}
+                onChange={(e) => setTestMessage(e.target.value)}
+                className="w-full bg-black border border-zinc-800 p-2 text-xs text-white focus:outline-none focus:border-sky-500 font-mono"
+              />
+            </div>
+
+            <div className="pt-2 flex justify-end">
+              <button
+                type="submit"
+                className="flex items-center gap-2 px-4 py-2 bg-sky-500 hover:bg-sky-400 text-black border border-white text-xs font-bold uppercase tracking-wider shadow-[2px_2px_0px_0px_#ffffff] cursor-pointer"
+              >
+                {testSuccess ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Sparkles className="w-3.5 h-3.5" />}
+                {testSuccess ? 'SENT TO OVERLAY!' : 'SEND TO OVERLAY'}
+              </button>
+            </div>
+          </form>
+        </div>
+
+        {/* Live Incoming Feed Preview */}
+        <div className="mt-6 pt-4 border-t border-zinc-800">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-2">
+              <MessageSquare className="w-3.5 h-3.5 text-zinc-500" />
+              RECENT CHAT FEED ({recentChat.length} MESSAGES)
+            </span>
+            <a
+              href="/overlay"
+              target="_blank"
+              rel="noreferrer"
+              className="text-xs text-emerald-400 hover:underline flex items-center gap-1 font-mono"
+            >
+              <ExternalLink className="w-3 h-3" /> Preview Live /overlay
+            </a>
+          </div>
+
+          <div className="space-y-2">
+            {recentChat.slice(-4).reverse().map((msg, idx) => (
+              <div key={msg.id || idx} className="p-2.5 bg-zinc-950 border border-zinc-800 text-xs flex items-center justify-between gap-4">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className={`text-[10px] px-1.5 py-0.2 border uppercase font-bold ${
+                    msg.badge === 'owner'
+                      ? 'bg-red-950 text-red-400 border-red-700'
+                      : msg.badge === 'moderator'
+                      ? 'bg-blue-950 text-blue-400 border-blue-700'
+                      : msg.badge === 'sponsor'
+                      ? 'bg-emerald-950 text-emerald-400 border-emerald-700'
+                      : 'bg-black text-zinc-400 border-zinc-800'
+                  }`}>
+                    {msg.badge}
+                  </span>
+                  <span className="font-bold text-zinc-200">{msg.author}:</span>
+                  <span className="text-zinc-400 truncate">{msg.message}</span>
+                </div>
+                {msg.superChatAmount && (
+                  <span className="px-2 py-0.5 bg-amber-500 text-black font-black text-[10px] flex-shrink-0">
+                    {msg.superChatAmount}
+                  </span>
+                )}
+              </div>
+            ))}
           </div>
         </div>
       </div>
