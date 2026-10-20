@@ -28,12 +28,13 @@ export class SubwaySurfersAdapter extends BaseAdapter {
   public async initializeStandbyViewer(port = 3008): Promise<void> {
     if (this.engine) return;
     const defaultCfg: SubwaySurfersConfig = {
-      startingMultiplier: 10,
-      autoPlay: true,
+      botName: 'JakeSurfer',
+      mode: 'autonomous_ai',
+      difficulty: 'normal',
+      autoRevive: true,
       enableViewer: true,
       viewerPort: port,
-      speedIncreaseIntervalSeconds: 30,
-      maxSpeedKmh: 95
+      startingMultiplier: 10
     };
     this.config = defaultCfg;
     this.viewerPort = port;
