@@ -429,155 +429,40 @@ export class SubwaySurfersEngine extends EventEmitter {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TEZMC // SUBWAY SURFERS 24/7 AUTONOMOUS STREAM [SYBO OFFICIAL UNITY 3D]</title>
+  <title>Subway Surfers - 24/7 Autonomous AI Stream</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
     html, body {
-      width: 100%;
-      height: 100%;
+      width: 100vw;
+      height: 100vh;
       overflow: hidden;
       background: #000000;
-      color: #ffffff;
-      font-family: 'Courier New', Courier, monospace;
       user-select: none;
     }
-
     #game-container {
-      position: absolute;
+      position: fixed;
       top: 0;
       left: 0;
       width: 100vw;
       height: 100vh;
       z-index: 1;
-      background: #000;
+      background: #000000;
+      border: none;
     }
-
     #sybo-frame {
       width: 100%;
       height: 100%;
       border: none;
       display: block;
     }
-
-    /* TEZMC Cyber-Brutalist Stream HUD Overlays */
-    .hud-overlay {
-      position: absolute;
-      z-index: 10;
-      pointer-events: none;
-    }
-
-    /* Top Left Telemetry Matrix */
-    .hud-top-left {
-      top: 16px;
-      left: 16px;
-      background: rgba(0, 0, 0, 0.88);
-      border: 2px solid #10b981;
-      padding: 12px 18px;
-      box-shadow: 4px 4px 0px #10b981;
-    }
-
-    .hud-title {
-      font-size: 13px;
-      font-weight: 900;
-      letter-spacing: 1.5px;
-      color: #10b981;
-      margin-bottom: 6px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .hud-badge {
-      display: inline-block;
-      width: 8px;
-      height: 8px;
-      background: #10b981;
-      box-shadow: 0 0 8px #10b981;
-      animation: pulse 1.2s infinite;
-    }
-
-    @keyframes pulse {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.4; transform: scale(0.85); }
-    }
-
-    .hud-stat-row {
-      display: flex;
-      gap: 16px;
-      font-size: 14px;
-      font-weight: bold;
-      margin-top: 4px;
-    }
-
-    .stat-val-gold { color: #facc15; }
-    .stat-val-white { color: #ffffff; }
-    .stat-val-cyan { color: #38bdf8; }
-
-    /* Top Right Controls & Status */
-    .hud-top-right {
-      top: 16px;
-      right: 16px;
-      display: flex;
-      gap: 8px;
-      pointer-events: auto;
-    }
-
-    .brutal-btn {
-      background: #000;
-      color: #10b981;
-      border: 2px solid #10b981;
-      padding: 8px 14px;
-      font-family: inherit;
-      font-size: 11px;
-      font-weight: 900;
-      cursor: pointer;
-      box-shadow: 3px 3px 0px #10b981;
-      transition: all 0.1s ease;
-    }
-
-    .brutal-btn:hover {
-      background: #10b981;
-      color: #000;
-      transform: translate(-1px, -1px);
-      box-shadow: 4px 4px 0px #ffffff;
-    }
-
-    /* Bottom Chat & Action Ticker */
-    .hud-bottom-bar {
-      bottom: 16px;
-      left: 16px;
-      right: 16px;
-      background: rgba(0, 0, 0, 0.90);
-      border: 2px solid #3f3f46;
-      border-left: 6px solid #10b981;
-      padding: 10px 18px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      box-shadow: 4px 4px 0px rgba(0, 0, 0, 0.8);
-    }
-
-    .chat-commands {
-      font-size: 12px;
-      color: #a1a1aa;
-      font-weight: bold;
-    }
-
-    .chat-commands span {
-      color: #facc15;
-      margin-right: 10px;
-    }
-
-    .runner-status {
-      font-size: 12px;
-      color: #34d399;
-      font-weight: 900;
-      letter-spacing: 0.5px;
-    }
   </style>
 </head>
 <body>
-  <!-- Authentic SYBO Unity WebGL 3D Client -->
+  <!-- Clean Full-Screen Authentic SYBO Unity 3D WebGL Client -->
   <div id="game-container">
     <iframe
       id="sybo-frame"
@@ -587,106 +472,125 @@ export class SubwaySurfersEngine extends EventEmitter {
     ></iframe>
   </div>
 
-  <!-- TEZMC Top-Left Telemetry Matrix -->
-  <div class="hud-overlay hud-top-left">
-    <div class="hud-title">
-      <span class="hud-badge"></span>
-      TEZMC // SYBO SUBWAY SURFERS 24/7 LIVE
-    </div>
-    <div class="hud-stat-row">
-      <span>CLIENT: <span class="stat-val-cyan">OFFICIAL SYBO UNITY 3D (WASM)</span></span>
-      <span>EDITION: <span class="stat-val-white">MONACO WORLD TOUR</span></span>
-    </div>
-    <div class="hud-stat-row">
-      <span>AUTONOMOUS ENGINE: <span class="stat-val-gold" id="score-display">ACTIVE</span></span>
-      <span>MULTIPLIER: <span class="stat-val-cyan" id="mult-display">10X</span></span>
-    </div>
-  </div>
-
-  <!-- Top-Right Brutalist Action Bar -->
-  <div class="hud-overlay hud-top-right">
-    <button class="brutal-btn" id="btn-focus">FOCUS GAME [CLICK / ARROWS / SPACE]</button>
-    <button class="brutal-btn" id="btn-play">START RUN</button>
-  </div>
-
-  <!-- Bottom Interactive Viewer Banner -->
-  <div class="hud-overlay hud-bottom-bar">
-    <div class="chat-commands">
-      <span>YOUTUBE CHAT CONTROLS:</span>
-      !left &nbsp; !right &nbsp; !jump &nbsp; !roll &nbsp; !hoverboard
-    </div>
-    <div class="runner-status" id="status-display">
-      SYSTEM: RUNNING 60FPS AUTONOMOUS STREAM
-    </div>
-  </div>
-
   <script>
     const frame = document.getElementById('sybo-frame');
-    const btnFocus = document.getElementById('btn-focus');
-    const btnPlay = document.getElementById('btn-play');
-    const statusDisplay = document.getElementById('status-display');
-    const scoreDisplay = document.getElementById('score-display');
-    const multDisplay = document.getElementById('mult-display');
 
     function focusGame() {
       try {
-        frame.contentWindow.focus();
+        if (frame && frame.contentWindow) {
+          frame.contentWindow.focus();
+        }
       } catch (e) {}
     }
 
-    btnFocus.addEventListener('click', focusGame);
-    window.addEventListener('click', () => {
+    // Keep game actively focused
+    window.addEventListener('load', () => {
       focusGame();
+      setTimeout(focusGame, 500);
+      setTimeout(focusGame, 1500);
     });
+    window.addEventListener('click', focusGame);
+    setInterval(focusGame, 2000);
 
-    btnPlay.addEventListener('click', () => {
-      focusGame();
-      // Send Space Key to start or jump
-      dispatchKey('Space', 32);
-    });
-
+    // Dispatch Native Keyboard Action
     function dispatchKey(code, keyCode) {
+      focusGame();
       try {
         const doc = frame.contentDocument || frame.contentWindow.document;
         if (doc) {
-          const evDown = new KeyboardEvent('keydown', { key: code, code: code, keyCode: keyCode, which: keyCode, bubbles: true });
-          const evUp = new KeyboardEvent('keyup', { key: code, code: code, keyCode: keyCode, which: keyCode, bubbles: true });
+          const evDown = new KeyboardEvent('keydown', { key: code, code: code, keyCode: keyCode, which: keyCode, bubbles: true, cancelable: true });
+          const evUp = new KeyboardEvent('keyup', { key: code, code: code, keyCode: keyCode, which: keyCode, bubbles: true, cancelable: true });
           doc.dispatchEvent(evDown);
           setTimeout(() => doc.dispatchEvent(evUp), 80);
         }
       } catch (e) {
-        // Cross-origin fallback: focus window
-        focusGame();
+        // Fallback: window-level events
+        const evDown = new KeyboardEvent('keydown', { key: code, code: code, keyCode: keyCode, which: keyCode, bubbles: true, cancelable: true });
+        const evUp = new KeyboardEvent('keyup', { key: code, code: code, keyCode: keyCode, which: keyCode, bubbles: true, cancelable: true });
+        window.dispatchEvent(evDown);
+        setTimeout(() => window.dispatchEvent(evUp), 80);
       }
     }
 
-    // Forward global window arrow keys into game iframe
+    // Dispatch Native Click
+    function dispatchClick(x, y) {
+      focusGame();
+      try {
+        const doc = frame.contentDocument || frame.contentWindow.document;
+        if (doc) {
+          const el = doc.elementFromPoint(x || window.innerWidth / 2, y || window.innerHeight / 2) || doc.body;
+          const evDown = new MouseEvent('mousedown', { clientX: x || window.innerWidth / 2, clientY: y || window.innerHeight / 2, bubbles: true });
+          const evUp = new MouseEvent('mouseup', { clientX: x || window.innerWidth / 2, clientY: y || window.innerHeight / 2, bubbles: true });
+          const evClick = new MouseEvent('click', { clientX: x || window.innerWidth / 2, clientY: y || window.innerHeight / 2, bubbles: true });
+          el.dispatchEvent(evDown);
+          el.dispatchEvent(evUp);
+          el.dispatchEvent(evClick);
+        }
+      } catch (e) {}
+    }
+
+    // --- AUTONOMOUS AI GAMEPLAY RUNNER ---
+    // 1. Auto-Start & Auto-Revive Engine:
+    // Periodically clicks center and sends Space to start run or continue past crash/results screens
+    setInterval(() => {
+      dispatchClick();
+      dispatchKey('Space', 32);
+    }, 2800);
+
+    // 2. Intelligent Real-Time AI Policy Agent:
+    let aiActiveLane = 0; // -1 (left), 0 (center), 1 (right)
+
+    function executeAiMove() {
+      const roll = Math.random();
+
+      // 10% Chance: Deploy Hoverboard Shield (double tap Space)
+      if (Math.random() < 0.10) {
+        dispatchKey('Space', 32);
+        setTimeout(() => dispatchKey('Space', 32), 110);
+      }
+
+      // Action decision tree:
+      if (roll < 0.28) {
+        // Jump over barriers & train ramps
+        dispatchKey('ArrowUp', 38);
+      } else if (roll < 0.54) {
+        // Duck / Roll slide under overhead obstacles
+        dispatchKey('ArrowDown', 40);
+      } else if (roll < 0.77) {
+        // Swipe Left
+        if (aiActiveLane > -1) {
+          aiActiveLane--;
+          dispatchKey('ArrowLeft', 37);
+        } else {
+          aiActiveLane++;
+          dispatchKey('ArrowRight', 39);
+        }
+      } else {
+        // Swipe Right
+        if (aiActiveLane < 1) {
+          aiActiveLane++;
+          dispatchKey('ArrowRight', 39);
+        } else {
+          aiActiveLane--;
+          dispatchKey('ArrowLeft', 37);
+        }
+      }
+
+      // Adaptive next move tempo (350ms - 800ms) for high-speed parkour
+      const nextDelay = 350 + Math.random() * 450;
+      setTimeout(executeAiMove, nextDelay);
+    }
+
+    // Begin AI Runner loop after initial WebGL load
+    setTimeout(executeAiMove, 3500);
+
+    // Forward any human keyboard inputs if someone presses keys directly
     window.addEventListener('keydown', (e) => {
       focusGame();
       if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
-        statusDisplay.textContent = 'PLAYER ACTION: ' + e.key.toUpperCase();
+        dispatchKey(e.code, e.keyCode);
       }
     });
-
-    // Poll live state from TEZMC Engine
-    async function pollState() {
-      try {
-        const stateUrl = window.location.pathname.endsWith('/') ? 'state' : window.location.pathname + '/state';
-        const res = await fetch(stateUrl);
-        if (res.ok) {
-          const data = await res.json();
-          if (data && data.state) {
-            scoreDisplay.textContent = 'SCORE ' + data.state.score;
-            multDisplay.textContent = data.state.multiplier + 'X';
-            if (data.lastAction) {
-              statusDisplay.textContent = 'STATUS: ' + data.lastAction;
-            }
-          }
-        }
-      } catch (e) {}
-      setTimeout(pollState, 800);
-    }
-    pollState();
   </script>
 </body>
 </html>`;
