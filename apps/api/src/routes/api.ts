@@ -2,13 +2,14 @@ import { Router, Request, Response } from 'express';
 import {
   SessionCreateSchema,
   StreamConfigSchema,
+  StreamDestinationSchema,
   ScheduleConfigSchema,
   UserCredentialsSchema,
   SecretRedactor
 } from '@autoplay/shared';
 import { AdapterRegistry } from '@autoplay/adapter-sdk';
 import { SessionStateMachine } from '@autoplay/session-manager';
-import { StreamingManager } from '@autoplay/streaming';
+import { StreamingManager, MultiStreamManager, PLATFORM_PRESETS } from '@autoplay/streaming';
 import { MonitoringService } from '@autoplay/monitoring';
 import { SchedulerService } from '@autoplay/scheduler';
 import { ChatManager } from '@autoplay/chat-interactivity';
@@ -238,6 +239,57 @@ export function createApiRouter(
     } else {
       res.status(503).json({ error: 'Chat interactivity service unavailable' });
     }
+  });
+
+  // Multi-Stream Destination Management Endpoints
+  router.get('/stream/presets', async (_req: Request, res: Response) => {
+    res.json({ presets: PLATFORM_PRESETS });
+  });
+
+  router.get('/stream/destinations', async (_req: Request, res: Response) => {
+    const multiManager = MultiStreamManager.getInstance();
+    res.json({
+      destinations: multiManager.getSanitizedDestinations(),
+      activeCount: multiManager.getActiveDestinations().length
+    });
+  });
+
+  router.post('/stream/destinations', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const data = StreamDestinationSchema.omit({ id: true }).parse(req.body);
+      const multiManager = MultiStreamManager.getInstance();
+      const created = multiManager.addDestination(data);
+      db.recordAuditLog('STREAM_DESTINATION_ADD', 'stream', { id: created.id, name: created.name, platform: created.platform });
+      res.status(201).json({ destination: created });
+    } catch (err: any) {
+      res.status(400).json({ error: 'Validation Error', message: err?.message || err });
+    }
+  });
+
+  router.patch('/stream/destinations/:id', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const multiManager = MultiStreamManager.getInstance();
+      const updated = multiManager.updateDestination(req.params.id, req.body);
+      if (!updated) {
+        res.status(404).json({ error: 'Not Found', message: 'Destination not found' });
+        return;
+      }
+      db.recordAuditLog('STREAM_DESTINATION_UPDATE', 'stream', { id: updated.id, enabled: updated.enabled });
+      res.json({ destination: updated });
+    } catch (err: any) {
+      res.status(400).json({ error: 'Failed to update destination', message: err?.message || err });
+    }
+  });
+
+  router.delete('/stream/destinations/:id', requireAuth, async (req: Request, res: Response) => {
+    const multiManager = MultiStreamManager.getInstance();
+    const removed = multiManager.removeDestination(req.params.id);
+    if (!removed) {
+      res.status(404).json({ error: 'Not Found', message: 'Destination not found' });
+      return;
+    }
+    db.recordAuditLog('STREAM_DESTINATION_REMOVE', 'stream', { id: req.params.id });
+    res.json({ success: true, message: 'Destination removed' });
   });
 
   return router;

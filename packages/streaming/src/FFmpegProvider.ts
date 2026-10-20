@@ -2,6 +2,7 @@ import { spawn, ChildProcess } from 'node:child_process';
 import { EventEmitter } from 'node:events';
 import { StreamConfig, StreamMetrics, StreamStatus, SecretRedactor } from '@autoplay/shared';
 import { CaptureSource, StreamingProvider } from './types.js';
+import { MultiStreamManager } from './MultiStreamManager.js';
 
 export class FFmpegProvider extends EventEmitter implements StreamingProvider {
   public readonly name = 'ffmpeg';
@@ -214,11 +215,17 @@ export class FFmpegProvider extends EventEmitter implements StreamingProvider {
       '-shortest'
     );
 
-    // Ingest output format
-    args.push(
-      '-f', 'flv',
-      rtmpDest
-    );
+    // Ingest output format: Single FLV or Multi-Stream Tee Muxer
+    if (config.destinations && config.destinations.filter(d => d.enabled).length > 1) {
+      const multiManager = MultiStreamManager.getInstance();
+      const multiArgs = multiManager.buildFFmpegOutputArgs(config);
+      args.push(...multiArgs);
+    } else {
+      args.push(
+        '-f', 'flv',
+        rtmpDest
+      );
+    }
 
     return args;
   }

@@ -57,10 +57,22 @@ export const SubwaySurfersConfigSchema = z.object({
 
 export type SubwaySurfersConfig = z.infer<typeof SubwaySurfersConfigSchema>;
 
+export const StreamDestinationSchema = z.object({
+  id: z.string().default(() => Math.random().toString(36).substring(2, 9)),
+  name: z.string().min(1).default('Primary YouTube'),
+  platform: z.enum(['youtube', 'twitch', 'kick', 'tiktok', 'facebook', 'custom']).default('youtube'),
+  rtmpUrl: z.string().min(1),
+  streamKey: z.string().optional(),
+  enabled: z.boolean().default(true)
+});
+
+export type StreamDestination = z.infer<typeof StreamDestinationSchema>;
+
 export const StreamConfigSchema = z.object({
   provider: z.enum(['ffmpeg', 'obs']).default('ffmpeg'),
   rtmpUrl: z.string().url().or(z.string().regex(/^rtmps?:\/\/.+/)),
   streamKey: z.string().optional(),
+  destinations: z.array(StreamDestinationSchema).optional().default([]),
   width: z.number().int().min(640).max(3840).default(1280),
   height: z.number().int().min(360).max(2160).default(720),
   fps: z.number().int().min(15).max(60).default(30),

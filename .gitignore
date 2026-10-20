@@ -13,3 +13,4 @@ videos/
 recordings/
 tmp/
 scratch/
+*.tsbuildinfo
