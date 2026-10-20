@@ -16,12 +16,11 @@ export class CaptureValidator {
       };
     }
 
-    if (platform === 'linux') {
-      // Check if Xvfb or X11 display is accessible
+    if (preferredType === 'x11' || platform === 'linux') {
       const display = process.env.DISPLAY || ':99.0';
       const x11Socket = `/tmp/.X11-unix/X${display.replace(':', '').split('.')[0]}`;
 
-      if (fs.existsSync(x11Socket)) {
+      if (fs.existsSync(x11Socket) || preferredType === 'x11') {
         return {
           type: 'x11',
           displayOrDevice: display,

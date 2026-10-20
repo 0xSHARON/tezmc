@@ -2,10 +2,11 @@
 FROM node:22-bookworm-slim AS base
 WORKDIR /app
 
-# Install FFmpeg, Xvfb and graphic dependencies for headless canvas & rendering
+# Install FFmpeg, Xvfb, Chromium and graphic dependencies for headless canvas & rendering
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     xvfb \
+    chromium \
     mesa-utils \
     libgl1-mesa-dri \
     libgl1-mesa-glx \
@@ -40,8 +41,10 @@ COPY . .
 # Build all packages & apps
 RUN pnpm run build
 
+RUN chmod +x deploy/docker-entrypoint.sh
+
 ENV NODE_ENV=production
 ENV PORT=3000
-EXPOSE 3000 5173 3007 3008
+EXPOSE 3000 5173 3008
 
-CMD ["node", "apps/api/dist/index.js"]
+ENTRYPOINT ["./deploy/docker-entrypoint.sh"]

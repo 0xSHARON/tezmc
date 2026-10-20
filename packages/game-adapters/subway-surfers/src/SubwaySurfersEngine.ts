@@ -428,169 +428,551 @@ export class SubwaySurfersEngine extends EventEmitter {
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=1280, height=720, initial-scale=1.0">
   <title>Subway Surfers - 24/7 Autonomous AI Stream</title>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body {
-      width: 100vw;
-      height: 100vh;
+      width: 1280px;
+      height: 720px;
       overflow: hidden;
-      background: #000000;
+      background: #090a0f;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       user-select: none;
     }
-    #game-container {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      z-index: 1;
-      background: #000000;
-      border: none;
-    }
-    #sybo-frame {
-      width: 100%;
-      height: 100%;
-      border: none;
+    #game-canvas {
+      width: 1280px;
+      height: 720px;
       display: block;
+      background: #070913;
     }
   </style>
 </head>
 <body>
-  <!-- Clean Full-Screen Authentic SYBO Unity 3D WebGL Client -->
-  <div id="game-container">
-    <iframe
-      id="sybo-frame"
-      src="https://hilfig3r.github.io/subway-surfer-monaco/"
-      allow="autoplay; fullscreen; keyboard-map; focus-without-user-activation *"
-      sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
-    ></iframe>
-  </div>
+  <canvas id="game-canvas" width="1280" height="720"></canvas>
 
   <script>
-    const frame = document.getElementById('sybo-frame');
+    const canvas = document.getElementById('game-canvas');
+    const ctx = canvas.getContext('2d');
 
-    function focusGame() {
+    // Game state synchronized with backend
+    let state = {
+      score: 12400,
+      coins: 84,
+      distanceMeters: 450,
+      speedKmh: 55,
+      multiplier: 10,
+      lane: 0,
+      isJumping: false,
+      jumpProgress: 0,
+      isRolling: false,
+      rollProgress: 0,
+      hasHoverboard: false,
+      isCrashed: false,
+      runCount: 1,
+      topScore: 50000
+    };
+    let obstacles = [];
+    let coins = [];
+    let lastAction = 'AUTONOMOUS RUNNER ACTIVE';
+
+    // Local visual interpolation variables
+    let runnerVisualLane = 0;
+    let cameraShake = 0;
+    let trackOffset = 0;
+    let particles = [];
+    let speedLines = [];
+
+    // Horizon & perspective settings
+    const HORIZON_Y = 280;
+    const TRACK_BOTTOM_Y = 720;
+    const LANE_WIDTH_BOTTOM = 260;
+    const LANE_WIDTH_TOP = 40;
+
+    // Fetch state from backend 20Hz
+    async function syncBackendState() {
       try {
-        if (frame && frame.contentWindow) {
-          frame.contentWindow.focus();
+        const res = await fetch('/state');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.state) {
+            if (!state.isCrashed && data.state.isCrashed) {
+              cameraShake = 22; // collision impact shake
+            }
+            state = data.state;
+          }
+          if (Array.isArray(data.obstacles)) obstacles = data.obstacles;
+          if (Array.isArray(data.coins)) coins = data.coins;
+          if (data.lastAction) lastAction = data.lastAction;
         }
       } catch (e) {}
     }
+    setInterval(syncBackendState, 60);
 
-    // Keep game actively focused
-    window.addEventListener('load', () => {
-      focusGame();
-      setTimeout(focusGame, 500);
-      setTimeout(focusGame, 1500);
-    });
-    window.addEventListener('click', focusGame);
-    setInterval(focusGame, 2000);
+    // Perspective Projection Helper: 3D (lane: -1..1, y: height, z: distance 0..80) -> 2D Screen (sx, sy, scale)
+    function project3D(lane, yOffset, zDist) {
+      if (zDist < 0.2) zDist = 0.2;
+      const depth = Math.min(80, Math.max(0.5, zDist));
+      const t = 1 - Math.min(1, depth / 70); // 0 (horizon) -> 1 (screen bottom)
+      const persp = Math.pow(t, 2.2);
 
-    // Dispatch Native Keyboard Action
-    function dispatchKey(code, keyCode) {
-      focusGame();
-      try {
-        const doc = frame.contentDocument || frame.contentWindow.document;
-        if (doc) {
-          const evDown = new KeyboardEvent('keydown', { key: code, code: code, keyCode: keyCode, which: keyCode, bubbles: true, cancelable: true });
-          const evUp = new KeyboardEvent('keyup', { key: code, code: code, keyCode: keyCode, which: keyCode, bubbles: true, cancelable: true });
-          doc.dispatchEvent(evDown);
-          setTimeout(() => doc.dispatchEvent(evUp), 80);
-        }
-      } catch (e) {
-        // Fallback: window-level events
-        const evDown = new KeyboardEvent('keydown', { key: code, code: code, keyCode: keyCode, which: keyCode, bubbles: true, cancelable: true });
-        const evUp = new KeyboardEvent('keyup', { key: code, code: code, keyCode: keyCode, which: keyCode, bubbles: true, cancelable: true });
-        window.dispatchEvent(evDown);
-        setTimeout(() => window.dispatchEvent(evUp), 80);
+      const trackWidth = LANE_WIDTH_TOP + (LANE_WIDTH_BOTTOM - LANE_WIDTH_TOP) * persp;
+      const sy = HORIZON_Y + (TRACK_BOTTOM_Y - HORIZON_Y) * persp - (yOffset * persp * 1.8);
+      const sx = 640 + (lane * trackWidth * 1.08);
+      const scale = Math.max(0.08, persp);
+
+      return { sx, sy, scale };
+    }
+
+    // Spawn hoverboard exhaust particles
+    function spawnParticles(x, y, count = 2) {
+      for (let i = 0; i < count; i++) {
+        particles.push({
+          x: x + (Math.random() - 0.5) * 20,
+          y: y + (Math.random() - 0.5) * 8,
+          vx: (Math.random() - 0.5) * 2,
+          vy: 2 + Math.random() * 4,
+          size: 3 + Math.random() * 4,
+          life: 1.0,
+          color: state.hasHoverboard ? '#00f0ff' : '#ff9900'
+        });
       }
     }
 
-    // Dispatch Native Click
-    function dispatchClick(x, y) {
-      focusGame();
-      try {
-        const doc = frame.contentDocument || frame.contentWindow.document;
-        if (doc) {
-          const el = doc.elementFromPoint(x || window.innerWidth / 2, y || window.innerHeight / 2) || doc.body;
-          const evDown = new MouseEvent('mousedown', { clientX: x || window.innerWidth / 2, clientY: y || window.innerHeight / 2, bubbles: true });
-          const evUp = new MouseEvent('mouseup', { clientX: x || window.innerWidth / 2, clientY: y || window.innerHeight / 2, bubbles: true });
-          const evClick = new MouseEvent('click', { clientX: x || window.innerWidth / 2, clientY: y || window.innerHeight / 2, bubbles: true });
-          el.dispatchEvent(evDown);
-          el.dispatchEvent(evUp);
-          el.dispatchEvent(evClick);
+    // Main 60FPS Render Loop
+    let lastTime = performance.now();
+    function render(now) {
+      const dt = Math.min(0.1, (now - lastTime) / 1000);
+      lastTime = now;
+
+      // Smooth lane transition
+      runnerVisualLane += (state.lane - runnerVisualLane) * Math.min(1, dt * 14);
+
+      // Camera shake decay
+      if (cameraShake > 0) {
+        cameraShake *= 0.88;
+        if (cameraShake < 0.2) cameraShake = 0;
+      }
+      const shakeX = (Math.random() - 0.5) * cameraShake;
+      const shakeY = (Math.random() - 0.5) * cameraShake;
+
+      ctx.save();
+      ctx.translate(shakeX, shakeY);
+
+      // 1. SKY & DISTANT CITYLINE
+      const skyGrad = ctx.createLinearGradient(0, 0, 0, HORIZON_Y);
+      skyGrad.addColorStop(0, '#060814');
+      skyGrad.addColorStop(0.6, '#0f172a');
+      skyGrad.addColorStop(1, '#1e1b4b');
+      ctx.fillStyle = skyGrad;
+      ctx.fillRect(0, 0, 1280, HORIZON_Y);
+
+      // Distant skyscrapers silhouette
+      ctx.fillStyle = '#0a0d1d';
+      for (let i = 0; i < 28; i++) {
+        const bx = i * 48;
+        const bh = 40 + ((i * 37) % 90);
+        ctx.fillRect(bx, HORIZON_Y - bh, 42, bh);
+        // glowing windows
+        if (i % 2 === 0) {
+          ctx.fillStyle = '#fbbf24';
+          ctx.fillRect(bx + 10, HORIZON_Y - bh + 15, 4, 6);
+          ctx.fillRect(bx + 24, HORIZON_Y - bh + 30, 4, 6);
+          ctx.fillStyle = '#0a0d1d';
         }
-      } catch (e) {}
+      }
+
+      // Neon horizon glow line
+      ctx.strokeStyle = '#00f0ff';
+      ctx.shadowColor = '#00f0ff';
+      ctx.shadowBlur = 12;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(0, HORIZON_Y);
+      ctx.lineTo(1280, HORIZON_Y);
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      // 2. SUBWAY GROUND & TRACKS
+      const groundGrad = ctx.createLinearGradient(0, HORIZON_Y, 0, 720);
+      groundGrad.addColorStop(0, '#111827');
+      groundGrad.addColorStop(1, '#05070e');
+      ctx.fillStyle = groundGrad;
+      ctx.fillRect(0, HORIZON_Y, 1280, 720 - HORIZON_Y);
+
+      // Advance track sleepers (ties)
+      trackOffset = (trackOffset + (state.speedKmh * 0.45 * dt)) % 1.0;
+
+      // Draw perspective ties
+      ctx.lineWidth = 3;
+      for (let z = 60; z >= 1; z -= 1.8) {
+        const adjustedZ = z - (trackOffset * 1.8);
+        if (adjustedZ < 1) continue;
+        const pL = project3D(-1.5, 0, adjustedZ);
+        const pR = project3D(1.5, 0, adjustedZ);
+
+        ctx.strokeStyle = 'rgba(51, 65, 85, ' + Math.min(0.8, pL.scale * 1.2) + ')';
+        ctx.beginPath();
+        ctx.moveTo(pL.sx, pL.sy);
+        ctx.lineTo(pR.sx, pR.sy);
+        ctx.stroke();
+      }
+
+      // Draw Rails for 3 Lanes (Left, Center, Right)
+      const lanes = [-1, 0, 1];
+      for (const lane of lanes) {
+        const pTopLeft = project3D(lane - 0.38, 0, 65);
+        const pBotLeft = project3D(lane - 0.38, 0, 0.8);
+        const pTopRight = project3D(lane + 0.38, 0, 65);
+        const pBotRight = project3D(lane + 0.38, 0, 0.8);
+
+        // Steel Rails
+        ctx.strokeStyle = '#94a3b8';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(pTopLeft.sx, pTopLeft.sy);
+        ctx.lineTo(pBotLeft.sx, pBotLeft.sy);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(pTopRight.sx, pTopRight.sy);
+        ctx.lineTo(pBotRight.sx, pBotRight.sy);
+        ctx.stroke();
+
+        // Glowing center track neon ballast line
+        ctx.strokeStyle = lane === 0 ? 'rgba(0, 240, 255, 0.25)' : 'rgba(234, 179, 8, 0.15)';
+        ctx.lineWidth = 1;
+        const pTopC = project3D(lane, 0, 65);
+        const pBotC = project3D(lane, 0, 0.8);
+        ctx.beginPath();
+        ctx.moveTo(pTopC.sx, pTopC.sy);
+        ctx.lineTo(pBotC.sx, pBotC.sy);
+        ctx.stroke();
+      }
+
+      // 3. DRAW 3D OBSTACLES (Trains, Hurdles, Barriers)
+      // Sort items back-to-front by zDistance
+      const renderItems = [];
+
+      for (const obs of obstacles) {
+        if (obs.zDistance > 0 && obs.zDistance < 65) {
+          renderItems.push({ type: 'obs', data: obs, z: obs.zDistance });
+        }
+      }
+      for (const coin of coins) {
+        if (!coin.collected && coin.zDistance > 0 && coin.zDistance < 65) {
+          renderItems.push({ type: 'coin', data: coin, z: coin.zDistance });
+        }
+      }
+
+      renderItems.sort((a, b) => b.z - a.z);
+
+      for (const item of renderItems) {
+        if (item.type === 'obs') {
+          const obs = item.data;
+          const p = project3D(obs.lane, 0, obs.z);
+
+          if (obs.type === 'train') {
+            // Draw 3D Passenger Subway Train
+            const w = 180 * p.scale;
+            const h = 220 * p.scale;
+            const x = p.sx - w / 2;
+            const y = p.sy - h;
+
+            // Train Front
+            const trainGrad = ctx.createLinearGradient(x, y, x + w, y + h);
+            trainGrad.addColorStop(0, '#0284c7');
+            trainGrad.addColorStop(0.5, '#0369a1');
+            trainGrad.addColorStop(1, '#075985');
+            ctx.fillStyle = trainGrad;
+            ctx.fillRect(x, y, w, h);
+
+            // Front Windshield
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(x + w * 0.15, y + h * 0.18, w * 0.7, h * 0.28);
+
+            // Glowing Dual Headlights
+            ctx.fillStyle = '#fef08a';
+            ctx.shadowColor = '#facc15';
+            ctx.shadowBlur = 15;
+            ctx.beginPath();
+            ctx.arc(x + w * 0.22, y + h * 0.75, 8 * p.scale, 0, Math.PI * 2);
+            ctx.arc(x + w * 0.78, y + h * 0.75, 8 * p.scale, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            // Warning Stripes
+            ctx.fillStyle = '#eab308';
+            ctx.fillRect(x + w * 0.1, y + h * 0.88, w * 0.8, 6 * p.scale);
+          } else if (obs.type === 'hurdle') {
+            // Low Red/White Barrier (Jump Over)
+            const w = 150 * p.scale;
+            const h = 55 * p.scale;
+            const x = p.sx - w / 2;
+            const y = p.sy - h;
+
+            ctx.fillStyle = '#ef4444';
+            ctx.fillRect(x, y, w, h);
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(x + w * 0.3, y, w * 0.4, h);
+
+            // Support legs
+            ctx.fillStyle = '#475569';
+            ctx.fillRect(x + 5, y + h, 8 * p.scale, 15 * p.scale);
+            ctx.fillRect(x + w - 13, y + h, 8 * p.scale, 15 * p.scale);
+          } else {
+            // High Caution Archway Barrier (Duck / Roll Under)
+            const w = 170 * p.scale;
+            const h = 160 * p.scale;
+            const x = p.sx - w / 2;
+            const y = p.sy - h;
+
+            // Overhead bar
+            ctx.fillStyle = '#eab308';
+            ctx.fillRect(x, y, w, 32 * p.scale);
+            // Black diagonal stripes
+            ctx.fillStyle = '#0f172a';
+            for (let s = 0; s < w; s += 24 * p.scale) {
+              ctx.fillRect(x + s, y, 12 * p.scale, 32 * p.scale);
+            }
+            // Tall side poles
+            ctx.fillStyle = '#64748b';
+            ctx.fillRect(x, y + 32 * p.scale, 14 * p.scale, h - 32 * p.scale);
+            ctx.fillRect(x + w - 14 * p.scale, y + 32 * p.scale, 14 * p.scale, h - 32 * p.scale);
+          }
+        } else if (item.type === 'coin') {
+          // Spinning 3D Gold Coin
+          const coin = item.data;
+          const p = project3D(coin.lane, 35, coin.z);
+          const spin = Math.cos(now * 0.007 + coin.z);
+          const r = 22 * p.scale;
+
+          ctx.save();
+          ctx.translate(p.sx, p.sy);
+          ctx.scale(spin, 1);
+
+          ctx.fillStyle = '#eab308';
+          ctx.beginPath();
+          ctx.arc(0, 0, r, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = '#fef08a';
+          ctx.beginPath();
+          ctx.arc(0, 0, r * 0.7, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = '#ca8a04';
+          ctx.font = 'bold ' + Math.round(r * 0.9) + 'px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('$', 0, 0);
+
+          ctx.restore();
+        }
+      }
+
+      // 4. DRAW RUNNER CHARACTER (Jake / Parkour Surfer)
+      let jumpY = 0;
+      if (state.isJumping) {
+        // Smooth parabolic jump arc (peaks at progress 0.5)
+        jumpY = Math.sin(state.jumpProgress * Math.PI) * 170;
+      }
+
+      let rollScaleY = 1.0;
+      let rollOffset = 0;
+      if (state.isRolling) {
+        rollScaleY = 0.45;
+        rollOffset = 25;
+      }
+
+      const runnerPos = project3D(runnerVisualLane, jumpY, 1.8);
+      const rx = runnerPos.sx;
+      const ry = runnerPos.sy + rollOffset;
+      const rScale = runnerPos.scale * 1.5;
+
+      // Hoverboard Thruster & Glow
+      if (state.hasHoverboard) {
+        spawnParticles(rx, ry + 10, 3);
+
+        ctx.save();
+        ctx.shadowColor = '#00f0ff';
+        ctx.shadowBlur = 20;
+
+        // Hoverboard deck
+        ctx.fillStyle = '#00f0ff';
+        ctx.beginPath();
+        ctx.ellipse(rx, ry + 6, 60 * rScale, 14 * rScale, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.ellipse(rx, ry + 6, 42 * rScale, 7 * rScale, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      // Runner Body
+      ctx.save();
+      ctx.translate(rx, ry);
+      ctx.scale(1, rollScaleY);
+
+      // Shadow
+      ctx.fillStyle = 'rgba(0,0,0,0.45)';
+      ctx.beginPath();
+      ctx.ellipse(0, 8, 38 * rScale, 12 * rScale, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Running body bob
+      const runBob = state.isJumping ? 0 : Math.sin(now * 0.02) * 5;
+
+      // Legs / Denim Shorts
+      ctx.fillStyle = '#1e3a8a';
+      ctx.fillRect(-14 * rScale, -40 * rScale + runBob, 11 * rScale, 36 * rScale);
+      ctx.fillRect(3 * rScale, -40 * rScale - runBob, 11 * rScale, 36 * rScale);
+
+      // Sneakers
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(-16 * rScale, -6 * rScale + runBob, 14 * rScale, 10 * rScale);
+      ctx.fillRect(2 * rScale, -6 * rScale - runBob, 14 * rScale, 10 * rScale);
+
+      // Torso / Turquoise Hoodie
+      const hoodieGrad = ctx.createLinearGradient(0, -90 * rScale, 0, -40 * rScale);
+      hoodieGrad.addColorStop(0, '#06b6d4');
+      hoodieGrad.addColorStop(1, '#0891b2');
+      ctx.fillStyle = hoodieGrad;
+      ctx.fillRect(-18 * rScale, -85 * rScale + runBob, 36 * rScale, 48 * rScale);
+
+      // Head / Skin
+      ctx.fillStyle = '#fbcfe8';
+      ctx.beginPath();
+      ctx.arc(0, -100 * rScale + runBob, 15 * rScale, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Red Surfer Cap
+      ctx.fillStyle = '#ef4444';
+      ctx.beginPath();
+      ctx.arc(0, -104 * rScale + runBob, 16 * rScale, Math.PI, Math.PI * 2);
+      ctx.fill();
+      // Cap visor pointing backward
+      ctx.fillRect(-18 * rScale, -105 * rScale + runBob, 12 * rScale, 5 * rScale);
+
+      ctx.restore();
+
+      // 5. PARTICLES (Hoverboard exhaust / sparks)
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life -= dt * 2.2;
+        p.size *= 0.94;
+
+        if (p.life <= 0) {
+          particles.splice(i, 1);
+          continue;
+        }
+
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = p.life;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1.0;
+      }
+
+      // 6. SPEED LINES (at > 50 km/h)
+      if (state.speedKmh > 50 && Math.random() < 0.45) {
+        speedLines.push({
+          x: Math.random() < 0.5 ? Math.random() * 220 : 1060 + Math.random() * 220,
+          y: Math.random() * 720,
+          len: 40 + Math.random() * 80,
+          speed: 800 + Math.random() * 600,
+          life: 1.0
+        });
+      }
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+      ctx.lineWidth = 1.5;
+      for (let i = speedLines.length - 1; i >= 0; i--) {
+        const sl = speedLines[i];
+        sl.y += sl.speed * dt;
+        sl.life -= dt * 3;
+        if (sl.life <= 0 || sl.y > 720) {
+          speedLines.splice(i, 1);
+          continue;
+        }
+        ctx.beginPath();
+        ctx.moveTo(sl.x, sl.y);
+        ctx.lineTo(sl.x, sl.y + sl.len);
+        ctx.stroke();
+      }
+
+      // 7. BROADCAST HUD OVERLAY
+      // Top HUD Card
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
+      ctx.strokeStyle = '#334155';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.roundRect(30, 20, 1220, 70, 14);
+      ctx.fill();
+      ctx.stroke();
+
+      // SCORE
+      ctx.font = 'bold 28px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      ctx.fillStyle = '#f8fafc';
+      ctx.textAlign = 'left';
+      ctx.fillText('SCORE: ' + state.score.toLocaleString(), 55, 62);
+
+      // MULTIPLIER BADGE
+      ctx.fillStyle = '#eab308';
+      ctx.beginPath();
+      ctx.roundRect(380, 36, 95, 34, 8);
+      ctx.fill();
+      ctx.fillStyle = '#0f172a';
+      ctx.font = 'bold 18px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(state.multiplier + 'X', 427, 60);
+
+      // SPEEDOMETER
+      ctx.font = 'bold 22px sans-serif';
+      ctx.fillStyle = '#38bdf8';
+      ctx.textAlign = 'left';
+      ctx.fillText('⚡ ' + Math.round(state.speedKmh) + ' KM/H', 540, 62);
+
+      // DISTANCE
+      ctx.font = '16px sans-serif';
+      ctx.fillStyle = '#94a3b8';
+      ctx.fillText(Math.round(state.distanceMeters) + 'm', 710, 62);
+
+      // COINS
+      ctx.font = 'bold 24px sans-serif';
+      ctx.fillStyle = '#facc15';
+      ctx.fillText('🪙 ' + state.coins, 820, 62);
+
+      // LIVE BROADCAST PILL
+      ctx.fillStyle = '#ef4444';
+      ctx.beginPath();
+      ctx.arc(1040, 54, 6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.font = 'bold 15px sans-serif';
+      ctx.fillStyle = '#f8fafc';
+      ctx.fillText('LIVE 60FPS', 1056, 60);
+
+      // Bottom Action Ticker
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+      ctx.beginPath();
+      ctx.roundRect(30, 650, 1220, 48, 10);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.font = '15px monospace';
+      ctx.fillStyle = '#38bdf8';
+      ctx.textAlign = 'left';
+      ctx.fillText('[TEZMC AI] ' + lastAction + ' | CHAT: !jump, !roll, !left, !right, !hoverboard, !stats', 50, 680);
+
+      ctx.restore();
+      requestAnimationFrame(render);
     }
 
-    // --- AUTONOMOUS AI GAMEPLAY RUNNER ---
-    // 1. Auto-Start & Auto-Revive Engine:
-    // Periodically clicks center and sends Space to start run or continue past crash/results screens
-    setInterval(() => {
-      dispatchClick();
-      dispatchKey('Space', 32);
-    }, 2800);
-
-    // 2. Intelligent Real-Time AI Policy Agent:
-    let aiActiveLane = 0; // -1 (left), 0 (center), 1 (right)
-
-    function executeAiMove() {
-      const roll = Math.random();
-
-      // 10% Chance: Deploy Hoverboard Shield (double tap Space)
-      if (Math.random() < 0.10) {
-        dispatchKey('Space', 32);
-        setTimeout(() => dispatchKey('Space', 32), 110);
-      }
-
-      // Action decision tree:
-      if (roll < 0.28) {
-        // Jump over barriers & train ramps
-        dispatchKey('ArrowUp', 38);
-      } else if (roll < 0.54) {
-        // Duck / Roll slide under overhead obstacles
-        dispatchKey('ArrowDown', 40);
-      } else if (roll < 0.77) {
-        // Swipe Left
-        if (aiActiveLane > -1) {
-          aiActiveLane--;
-          dispatchKey('ArrowLeft', 37);
-        } else {
-          aiActiveLane++;
-          dispatchKey('ArrowRight', 39);
-        }
-      } else {
-        // Swipe Right
-        if (aiActiveLane < 1) {
-          aiActiveLane++;
-          dispatchKey('ArrowRight', 39);
-        } else {
-          aiActiveLane--;
-          dispatchKey('ArrowLeft', 37);
-        }
-      }
-
-      // Adaptive next move tempo (350ms - 800ms) for high-speed parkour
-      const nextDelay = 350 + Math.random() * 450;
-      setTimeout(executeAiMove, nextDelay);
-    }
-
-    // Begin AI Runner loop after initial WebGL load
-    setTimeout(executeAiMove, 3500);
-
-    // Forward any human keyboard inputs if someone presses keys directly
-    window.addEventListener('keydown', (e) => {
-      focusGame();
-      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
-        dispatchKey(e.code, e.keyCode);
-      }
-    });
+    requestAnimationFrame(render);
   </script>
 </body>
 </html>`;
