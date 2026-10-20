@@ -11,6 +11,7 @@ import { SessionStateMachine } from '@autoplay/session-manager';
 import { MonitoringService } from '@autoplay/monitoring';
 import { SchedulerService } from '@autoplay/scheduler';
 import { OverlayServer } from '@autoplay/overlay';
+import { ChatManager } from '@autoplay/chat-interactivity';
 import { DbService } from './services/db.js';
 import { logger } from './services/logger.js';
 import { createApiRouter } from './routes/api.js';
@@ -65,6 +66,19 @@ async function bootstrap() {
   const schedulerService = new SchedulerService(sessionMachine);
   schedulerService.start();
 
+  // Chat & Viewer Interactivity Manager
+  const chatManager = new ChatManager();
+  chatManager.setActiveAdapter(mockMinecraftAdapter);
+  await chatManager.start();
+
+  chatManager.on('chat:message', (msg) => {
+    io.emit('chat:message', msg);
+  });
+
+  chatManager.on('commentary:speech', (item) => {
+    io.emit('commentary:speech', item);
+  });
+
   // Reconcile existing sessions on startup
   const priorSessions = db.listSessions(10);
   sessionMachine.reconcileOnStartup(priorSessions);
@@ -80,6 +94,16 @@ async function bootstrap() {
       message: `State transition: ${to} (${reason})`
     });
     logger.info({ state: to, reason }, 'Session state transition');
+
+    // Update active adapter for chat commands when session starts
+    if (to === 'RUNNING') {
+      const activeGame = sessionMachine.getActiveSession()?.gameId;
+      if (activeGame === 'minecraft-java') {
+        chatManager.setActiveAdapter(minecraftAdapter);
+      } else {
+        chatManager.setActiveAdapter(mockMinecraftAdapter);
+      }
+    }
   });
 
   streamingManager.on('status', (status) => {
@@ -114,7 +138,7 @@ async function bootstrap() {
   });
 
   // REST API Routes
-  app.use('/api/v1', createApiRouter(sessionMachine, streamingManager, monitoringService, schedulerService));
+  app.use('/api/v1', createApiRouter(sessionMachine, streamingManager, monitoringService, schedulerService, chatManager));
 
   // Live Stream Browser-Source Overlay Endpoint
   app.get('/overlay', (_req, res) => {
@@ -129,6 +153,13 @@ async function bootstrap() {
     socket.emit(SOCKET_EVENTS.SESSION_STATE_CHANGED, sessionMachine.getState());
     socket.emit(SOCKET_EVENTS.STREAM_STATUS, streamingManager.getStatus());
     socket.emit(SOCKET_EVENTS.STREAM_METRICS, streamingManager.getMetrics());
+    for (const msg of chatManager.getRecentChat()) {
+      socket.emit('chat:message', msg);
+    }
+    const recentCommentary = chatManager.getRecentCommentary();
+    if (recentCommentary.length > 0) {
+      socket.emit('commentary:speech', recentCommentary[recentCommentary.length - 1]);
+    }
   });
 
   // Graceful shutdown handling
@@ -136,6 +167,7 @@ async function bootstrap() {
     logger.info({ signal }, 'Graceful shutdown initiated...');
     monitoringService.stop();
     schedulerService.stop();
+    await chatManager.stop();
     await sessionMachine.stop(`System received ${signal}`);
     server.close(() => {
       logger.info('AutoPlay AI API HTTP & WebSocket server closed.');

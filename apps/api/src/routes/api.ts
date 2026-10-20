@@ -11,6 +11,7 @@ import { SessionStateMachine } from '@autoplay/session-manager';
 import { StreamingManager } from '@autoplay/streaming';
 import { MonitoringService } from '@autoplay/monitoring';
 import { SchedulerService } from '@autoplay/scheduler';
+import { ChatManager } from '@autoplay/chat-interactivity';
 import { DbService } from '../services/db.js';
 import { generateToken, requireAuth } from '../auth/jwt.js';
 import { logger } from '../services/logger.js';
@@ -19,7 +20,8 @@ export function createApiRouter(
   sessionMachine: SessionStateMachine,
   streamingManager: StreamingManager,
   monitoringService: MonitoringService,
-  schedulerService: SchedulerService
+  schedulerService: SchedulerService,
+  chatManager?: ChatManager
 ): Router {
   const router = Router();
   const db = DbService.getInstance();
@@ -205,6 +207,29 @@ export function createApiRouter(
   router.get('/logs', async (_req: Request, res: Response) => {
     const transitions = sessionMachine.getTransitions();
     res.json({ transitions: SecretRedactor.redactObject(transitions) });
+  });
+
+  // Viewer Chat & Commentary Endpoints
+  router.get('/chat/history', async (_req: Request, res: Response) => {
+    res.json({ chat: chatManager ? chatManager.getRecentChat() : [] });
+  });
+
+  router.get('/chat/commentary', async (_req: Request, res: Response) => {
+    res.json({ commentary: chatManager ? chatManager.getRecentCommentary() : [] });
+  });
+
+  router.post('/chat/message', async (req: Request, res: Response) => {
+    const { author = 'Viewer', message } = req.body || {};
+    if (!message || typeof message !== 'string') {
+      res.status(400).json({ error: 'Message is required' });
+      return;
+    }
+    if (chatManager) {
+      const msg = chatManager.injectMessage(author, message);
+      res.json({ success: true, message: msg });
+    } else {
+      res.status(503).json({ error: 'Chat interactivity service unavailable' });
+    }
   });
 
   return router;

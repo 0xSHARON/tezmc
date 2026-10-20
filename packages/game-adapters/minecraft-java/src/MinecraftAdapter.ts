@@ -279,4 +279,46 @@ export class MinecraftAdapter extends BaseAdapter {
     }
     return null;
   }
+
+  public async handleCommand(command: string, args: string[], sender: string): Promise<{ success: boolean; message: string }> {
+    const cmd = command.toLowerCase().replace(/^!/, '');
+    if (!this.bot || this.status.state !== 'CONNECTED') {
+      return { success: false, message: 'Minecraft bot is currently not connected.' };
+    }
+
+    switch (cmd) {
+      case 'jump':
+        this.bot.setControlState('jump', true);
+        setTimeout(() => this.bot?.setControlState('jump', false), 350);
+        return { success: true, message: `${this.config?.botName || 'AutoPlayBot'} jumped on command from @${sender}!` };
+
+      case 'coords':
+        const pos = this.bot.entity.position.floored();
+        return { success: true, message: `Current position: X=${pos.x}, Y=${pos.y}, Z=${pos.z}` };
+
+      case 'status':
+        return {
+          success: true,
+          message: `Health: ${this.bot.health}/20 | Food: ${this.bot.food}/20 | State: ${this.status.state}`
+        };
+
+      case 'say':
+        const chatText = args.join(' ');
+        if (chatText) {
+          this.bot.chat(chatText);
+          return { success: true, message: `Sent in-game chat: "${chatText}"` };
+        }
+        return { success: false, message: 'Please provide a message to say.' };
+
+      case 'explore':
+        if (this.navigationEngine) {
+          this.navigationEngine.startBoundedExploration();
+          return { success: true, message: 'Initiated new exploration sweep!' };
+        }
+        return { success: false, message: 'Navigation engine unavailable.' };
+
+      default:
+        return { success: false, message: `Unknown command: !${cmd}. Try !jump, !coords, !status, !say, !explore` };
+    }
+  }
 }

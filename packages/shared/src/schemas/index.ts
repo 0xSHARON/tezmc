@@ -90,3 +90,25 @@ export const ScheduleConfigSchema = z.object({
 });
 
 export type ScheduleConfig = z.infer<typeof ScheduleConfigSchema>;
+
+export const ChatMessageSchema = z.object({
+  id: z.string(),
+  author: z.string(),
+  message: z.string(),
+  timestamp: z.number(),
+  badge: z.enum(['viewer', 'moderator', 'sponsor', 'vip']).default('viewer'),
+  isCommand: z.boolean().default(false)
+});
+
+export type ChatMessage = z.infer<typeof ChatMessageSchema>;
+
+export const CommentaryItemSchema = z.object({
+  id: z.string(),
+  speaker: z.string().default('AutoPlay AI'),
+  text: z.string(),
+  mood: z.enum(['calm', 'excited', 'cautious', 'curious']).default('calm'),
+  timestamp: z.number()
+});
+
+export type CommentaryItem = z.infer<typeof CommentaryItemSchema>;
+

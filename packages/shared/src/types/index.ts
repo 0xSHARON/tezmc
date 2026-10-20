@@ -66,6 +66,7 @@ export interface GameAdapter {
   stop(): Promise<void>;
   healthCheck(): Promise<HealthStatus>;
   getViewerEndpoint?(): Promise<{ url: string; width: number; height: number } | null>;
+  handleCommand?(command: string, args: string[], sender: string): Promise<{ success: boolean; message: string }>;
   on?(event: string, listener: (...args: any[]) => void): void;
   off?(event: string, listener: (...args: any[]) => void): void;
 }

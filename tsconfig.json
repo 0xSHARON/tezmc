@@ -8,6 +8,9 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
     "resolveJsonModule": true,
     "baseUrl": ".",
     "paths": {
@@ -20,7 +23,8 @@
       "@autoplay/overlay": ["./packages/overlay/dist/index.d.ts"],
       "@autoplay/adapter-minecraft-java": ["./packages/game-adapters/minecraft-java/dist/index.d.ts"],
       "@autoplay/scheduler": ["./services/scheduler/dist/index.d.ts"],
-      "@autoplay/monitoring": ["./services/monitoring/dist/index.d.ts"]
+      "@autoplay/monitoring": ["./services/monitoring/dist/index.d.ts"],
+      "@autoplay/chat-interactivity": ["./packages/chat-interactivity/dist/index.d.ts"]
     }
   },
   "include": [

@@ -19,6 +19,7 @@
     "@autoplay/session-manager": "workspace:*",
     "@autoplay/shared": "workspace:*",
     "@autoplay/streaming": "workspace:*",
+    "@autoplay/chat-interactivity": "workspace:*",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",

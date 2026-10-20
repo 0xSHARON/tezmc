@@ -104,4 +104,35 @@ export class MockMinecraftAdapter extends BaseAdapter {
       height: 720
     };
   }
+
+  public async handleCommand(command: string, args: string[], sender: string): Promise<{ success: boolean; message: string }> {
+    const cmd = command.toLowerCase().replace(/^!/, '');
+    switch (cmd) {
+      case 'jump':
+        this.posY += 1;
+        setTimeout(() => { this.posY = Math.max(64, this.posY - 1); }, 400);
+        this.emit('bot_jump', { sender, timestamp: Date.now() });
+        return { success: true, message: `${this.config?.botName || 'AutoPlayBot'} jumped on command from @${sender}!` };
+
+      case 'coords':
+        return { success: true, message: `Current Position: X=${this.posX}, Y=${this.posY}, Z=${this.posZ}` };
+
+      case 'status':
+        return {
+          success: true,
+          message: `Health: ${this.status.health}/20 | Food: ${this.status.food ?? 20}/20 | Traveled: ${this.blocksTraveled}m | Status: ${this.status.state}`
+        };
+
+      case 'say':
+        const text = args.join(' ');
+        return { success: true, message: `[${this.config?.botName || 'AutoPlayBot'}]: ${text || 'Hello stream!'}` };
+
+      case 'explore':
+        const newRadius = args[0] ? parseInt(args[0], 10) : 50;
+        return { success: true, message: `Exploration perimeter adjusted to radius ${newRadius}m!` };
+
+      default:
+        return { success: false, message: `Unknown command: !${cmd}. Try !jump, !coords, !status, !say, !explore` };
+    }
+  }
 }

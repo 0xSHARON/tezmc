@@ -16,7 +16,8 @@ export default defineConfig({
       '@autoplay/session-manager': path.resolve(__dirname, 'packages/session-manager/src/index.ts'),
       '@autoplay/overlay': path.resolve(__dirname, 'packages/overlay/src/index.ts'),
       '@autoplay/scheduler': path.resolve(__dirname, 'services/scheduler/src/index.ts'),
-      '@autoplay/monitoring': path.resolve(__dirname, 'services/monitoring/src/index.ts')
+      '@autoplay/monitoring': path.resolve(__dirname, 'services/monitoring/src/index.ts'),
+      '@autoplay/chat-interactivity': path.resolve(__dirname, 'packages/chat-interactivity/src/index.ts')
     }
   },
   ssr: {
