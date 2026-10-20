@@ -72,7 +72,7 @@ export const StreamConfigSchema = z.object({
   provider: z.enum(['ffmpeg', 'obs']).default('ffmpeg'),
   rtmpUrl: z.string().url().or(z.string().regex(/^rtmps?:\/\/.+/)),
   streamKey: z.string().optional(),
-  destinations: z.array(StreamDestinationSchema).optional().default([]),
+  destinations: z.array(StreamDestinationSchema).optional(),
   width: z.number().int().min(640).max(3840).default(1280),
   height: z.number().int().min(360).max(2160).default(720),
   fps: z.number().int().min(15).max(60).default(30),
