@@ -2,11 +2,11 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import { SessionStateMachine } from '@autoplay/session-manager';
 import { StreamingManager } from '@autoplay/streaming';
 import { AdapterRegistry } from '@autoplay/adapter-sdk';
-import { MockMinecraftAdapter } from '@autoplay/adapter-minecraft-java';
+import { SubwaySurfersAdapter } from '@autoplay/adapter-subway-surfers';
 
 describe('SessionStateMachine', () => {
   const streamingManager = new StreamingManager();
-  const mockAdapter = new MockMinecraftAdapter();
+  const mockAdapter = new SubwaySurfersAdapter();
 
   beforeAll(() => {
     const reg = AdapterRegistry.getInstance();
@@ -25,13 +25,14 @@ describe('SessionStateMachine', () => {
     const sm = new SessionStateMachine(streamingManager, 3, 1);
 
     await sm.start({
-      gameId: 'minecraft-java-mock',
+      gameId: 'subway-surfers',
       gameConfig: {
-        host: 'localhost',
-        port: 25565,
-        version: '1.20.1',
         botName: 'TestBot',
-        exploreRadius: 20
+        mode: 'autonomous_ai',
+        difficulty: 'normal',
+        autoRevive: true,
+        enableViewer: false,
+        startingMultiplier: 10
       },
       maxHours: 1,
       alwaysOn: false

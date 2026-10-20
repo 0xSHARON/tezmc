@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import http from 'node:http';
 import express from 'express';
 import { AdapterRegistry } from '@autoplay/game-adapter-sdk';
-import { MockMinecraftAdapter } from '@autoplay/adapter-minecraft-java';
+import { SubwaySurfersAdapter } from '@autoplay/adapter-subway-surfers';
 import { StreamingManager } from '@autoplay/streaming';
 import { SessionStateMachine } from '@autoplay/session-manager';
 import { MonitoringService } from '@autoplay/monitoring';
@@ -19,7 +19,7 @@ describe('TEZMC Control API Integration Tests', () => {
     app.use(express.json());
 
     const reg = AdapterRegistry.getInstance();
-    const mock = new MockMinecraftAdapter();
+    const mock = new SubwaySurfersAdapter();
     if (!reg.has(mock.id)) {
       reg.register(mock);
     }
@@ -73,19 +73,20 @@ describe('TEZMC Control API Integration Tests', () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(Array.isArray(body.adapters)).toBe(true);
-    expect(body.adapters.some((a: any) => a.id === 'minecraft-java-mock')).toBe(true);
+    expect(body.adapters.some((a: any) => a.id === 'subway-surfers')).toBe(true);
   });
 
   it('POST /games/:id/validate should validate adapter configuration schema', async () => {
-    const res = await fetch(`${baseUrl}/games/minecraft-java-mock/validate`, {
+    const res = await fetch(`${baseUrl}/games/subway-surfers/validate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        host: 'localhost',
-        port: 25565,
-        version: '1.20.1',
-        botName: 'TezmcBot',
-        exploreRadius: 50
+        botName: 'JakeSurfer',
+        mode: 'autonomous_ai',
+        difficulty: 'normal',
+        autoRevive: true,
+        viewerPort: 3008,
+        enableViewer: false
       })
     });
     expect(res.status).toBe(200);

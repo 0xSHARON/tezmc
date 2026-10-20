@@ -10,7 +10,6 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@autoplay/adapter-minecraft-java": "workspace:*",
     "@autoplay/adapter-subway-surfers": "workspace:*",
     "@autoplay/adapter-sdk": "workspace:*",
     "@autoplay/capture": "workspace:*",

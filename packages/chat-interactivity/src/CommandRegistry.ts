@@ -45,7 +45,7 @@ export class CommandRegistry {
     if (command === 'help') {
       return {
         success: true,
-        message: 'Available commands: !jump (make bot jump), !coords (show location), !status (bot health/food), !say <text>, !explore <radius>'
+        message: 'Available commands: !jump, !roll, !left, !right, !hoverboard, !stats, !about'
       };
     }
 

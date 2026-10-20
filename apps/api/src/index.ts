@@ -5,7 +5,6 @@ import cors from 'cors';
 import { Server as SocketIOServer } from 'socket.io';
 import { SOCKET_EVENTS, SecretRedactor } from '@autoplay/shared';
 import { AdapterRegistry } from '@autoplay/adapter-sdk';
-import { MinecraftAdapter, MockMinecraftAdapter } from '@autoplay/adapter-minecraft-java';
 import { SubwaySurfersAdapter, SubwaySurfersEngine } from '@autoplay/adapter-subway-surfers';
 import { StreamingManager } from '@autoplay/streaming';
 import { SessionStateMachine } from '@autoplay/session-manager';
@@ -40,11 +39,7 @@ async function bootstrap() {
 
   // Adapter Registry & Registration
   const registry = AdapterRegistry.getInstance();
-  const minecraftAdapter = new MinecraftAdapter();
-  const mockMinecraftAdapter = new MockMinecraftAdapter();
   const subwaySurfersAdapter = new SubwaySurfersAdapter();
-  registry.register(minecraftAdapter);
-  registry.register(mockMinecraftAdapter);
   registry.register(subwaySurfersAdapter);
 
   // Initialize 24/7 standby Subway Surfers visual streamer on 0.0.0.0:3008
@@ -76,7 +71,7 @@ async function bootstrap() {
 
   // Chat & Viewer Interactivity Manager
   const chatManager = new ChatManager();
-  chatManager.setActiveAdapter(mockMinecraftAdapter);
+  chatManager.setActiveAdapter(subwaySurfersAdapter);
   await chatManager.start();
 
   chatManager.on('chat:message', (msg) => {
@@ -105,12 +100,7 @@ async function bootstrap() {
 
     // Update active adapter for chat commands when session starts
     if (to === 'RUNNING') {
-      const activeGame = sessionMachine.getActiveSession()?.gameId;
-      if (activeGame === 'minecraft-java') {
-        chatManager.setActiveAdapter(minecraftAdapter);
-      } else {
-        chatManager.setActiveAdapter(mockMinecraftAdapter);
-      }
+      chatManager.setActiveAdapter(subwaySurfersAdapter);
     }
   });
 
@@ -135,13 +125,8 @@ async function bootstrap() {
     io.emit(SOCKET_EVENTS.SYSTEM_METRICS, metrics);
   });
 
-  mockMinecraftAdapter.on('progress', async () => {
-    const progress = await mockMinecraftAdapter.getProgress();
-    io.emit(SOCKET_EVENTS.GAME_PROGRESS, progress);
-  });
-
-  minecraftAdapter.on('progress', async () => {
-    const progress = await minecraftAdapter.getProgress();
+  subwaySurfersAdapter.on('progress', async () => {
+    const progress = await subwaySurfersAdapter.getProgress();
     io.emit(SOCKET_EVENTS.GAME_PROGRESS, progress);
   });
 

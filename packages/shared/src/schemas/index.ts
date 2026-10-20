@@ -30,21 +30,6 @@ export const StreamStatusEnum = z.enum([
 ]);
 export type StreamStatus = z.infer<typeof StreamStatusEnum>;
 
-export const MinecraftConfigSchema = z.object({
-  host: z.string().min(1).default('localhost'),
-  port: z.number().int().min(1).max(65535).default(25565),
-  version: z.string().default('1.20.1'),
-  botName: z.string().min(1).max(16).default('TezmcBot'),
-  auth: z.enum(['offline', 'microsoft']).default('offline'),
-  exploreRadius: z.number().int().min(5).max(1000).default(50),
-  viewDistance: z.number().int().min(2).max(16).default(6),
-  viewerPort: z.number().int().min(1024).max(65535).default(3007),
-  enableViewer: z.boolean().default(true),
-  objective: z.enum(['bounded_exploration', 'idle_survey', 'resource_scout']).default('bounded_exploration')
-});
-
-export type MinecraftConfig = z.infer<typeof MinecraftConfigSchema>;
-
 export const SubwaySurfersConfigSchema = z.object({
   botName: z.string().min(1).max(24).default('JakeSurfer'),
   mode: z.enum(['autonomous_ai', 'chat_democracy', 'hybrid']).default('autonomous_ai'),

@@ -12,10 +12,10 @@ TEZMC is built with a minimalist, high-reliability gaming architecture designed 
 | :--- | :--- |
 | **Control Plane** | Express + TypeScript API with Zod validation, JWT authentication, and Pino structured logging with regex secret redaction. |
 | **Dashboard** | React + Vite + Tailwind CSS dark-charcoal gaming dashboard with real-time Socket.IO telemetry, Recharts throughput charts, and write-only stream key vault. |
-| **Game Adapters** | Typed `GameAdapter` interface, `AdapterRegistry`, **Minecraft Java Edition** (Mineflayer + A* Pathfinder), and **Mock Minecraft Harness** for deterministic testing. |
-| **Viewer Interactivity** | Live chat command parsing (`!jump`, `!coords`, `!status`, `!say`, `!explore`), per-user cooldowns, and dynamic AI streamer commentary bubble. |
-| **Visual Rendering** | Real-time 3D Minecraft world rendering via Prismarine 3D Viewer (`port 3007`), headless Linux display (`Xvfb :99`), and dynamic HTML5 live broadcast overlay (`/overlay`). |
-| **Streaming Engine** | Neutral provider interface with headless FFmpeg child-process manager, argument array sanitization (zero shell interpolation), watchdog stall detection, and exponential backoff with jitter. |
+| **Game Adapters** | Typed `GameAdapter` interface, `AdapterRegistry`, **Subway Surfers** (60FPS HTML5 canvas runner with autonomous parkour AI policy & chat controls), and modular pluggable game architecture. |
+| **Viewer Interactivity** | Live chat command parsing (`!jump`, `!roll`, `!left`, `!right`, `!hoverboard`, `!stats`, `!about`), per-user cooldowns, and dynamic AI streamer commentary bubble. |
+| **Visual Rendering** | Real-time 60FPS Subway Surfers parkour canvas stream (`port 3008`), headless Linux display (`Xvfb :99`), and dynamic HTML5 live broadcast overlay (`/overlay`). |
+| **Streaming Engine** | Multi-stream destination provider interface with headless FFmpeg child-process manager, argument array sanitization (zero shell interpolation), watchdog stall detection, and exponential backoff with jitter. |
 | **Session Lifecycle** | Deterministic 11-stage state machine (`IDLE` &rarr; `VALIDATING` &rarr; `STARTING_GAME` &rarr; `WAITING_FOR_GAME_READY` &rarr; `STARTING_CAPTURE` &rarr; `STARTING_STREAM` &rarr; `VERIFYING_STREAM` &rarr; `RUNNING` &rarr; `RECOVERING` &rarr; `STOPPING` &rarr; `IDLE` + `FAILED`). |
 | **Persistence** | Embedded zero-compilation `node:sqlite` with ANSI SQL migrations (`database/migrations/001_initial_schema.sql`), session history, audit trail, and crash reconciliation. |
 | **Deployment** | Docker Compose, Nginx reverse proxy configuration, systemd service units, and Ubuntu automated setup scripts. |
@@ -120,7 +120,7 @@ sudo systemctl restart nginx
 
 ## 4. Local Development & Testing
 
-TEZMC includes both physical Minecraft Java server integration and a deterministic **Simulated Autonomous Harness** (`minecraft-java-mock`) that runs out of the box with zero external dependencies.
+TEZMC includes an autonomous, 60FPS high-speed canvas runner engine (**Subway Surfers**) with built-in AI navigation and viewer chat interactivity that runs out of the box with zero external heavy game server dependencies.
 
 ### Start All Services (Dev Mode)
 

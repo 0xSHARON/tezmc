@@ -1,1 +1,1 @@
-{"root":["./src/ffmpegprovider.ts","./src/obsprovider.ts","./src/streamingmanager.ts","./src/index.ts","./src/types.ts"],"version":"5.9.3"}
+{"root":["./src/ffmpegprovider.ts","./src/multistreammanager.ts","./src/obsprovider.ts","./src/streamingmanager.ts","./src/index.ts","./src/types.ts"],"version":"5.9.3"}

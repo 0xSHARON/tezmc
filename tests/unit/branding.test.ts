@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { BRAND } from '@autoplay/shared';
 import { OverlayServer } from '@autoplay/overlay';
-import { MockMinecraftAdapter } from '@autoplay/adapter-minecraft-java';
+import { SubwaySurfersAdapter } from '@autoplay/adapter-subway-surfers';
 
 describe('TEZMC Rebranding Verification Tests', () => {
   it('BRAND constants should define TEZMC identity correctly', () => {
@@ -23,8 +23,8 @@ describe('TEZMC Rebranding Verification Tests', () => {
     expect(html).not.toContain('AutoPlay AI');
   });
 
-  it('MockMinecraftAdapter should have TEZMC displayName and TezmcBot default', () => {
-    const adapter = new MockMinecraftAdapter();
-    expect(adapter.displayName).toBe('Minecraft Java (TEZMC Autonomous Engine)');
+  it('SubwaySurfersAdapter should have TEZMC displayName', () => {
+    const adapter = new SubwaySurfersAdapter();
+    expect(adapter.displayName).toBe('Subway Surfers (Autonomous 24/7)');
   });
 });

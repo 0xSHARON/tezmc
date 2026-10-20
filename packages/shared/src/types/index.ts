@@ -2,7 +2,7 @@ import { SessionState, HealthStatus, StreamStatus, StreamConfig } from '../schem
 
 export interface GameStatus {
   state: 'INITIALIZING' | 'CONNECTED' | 'DISCONNECTED' | 'PAUSED' | 'ERROR' | 'STOPPED';
-  health: number; // e.g. 0-20 for Minecraft
+  health: number; // e.g. 0-100 or game-specific health
   food?: number;
   position?: { x: number; y: number; z: number; yaw?: number; pitch?: number };
   gameTime?: number;

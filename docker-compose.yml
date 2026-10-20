@@ -12,7 +12,6 @@ services:
       - .env
     ports:
       - "3000:3000"
-      - "3007:3007"
       - "3008:3008"
     environment:
       - NODE_ENV=production

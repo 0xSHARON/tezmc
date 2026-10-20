@@ -5,9 +5,16 @@ import {
   MockChatProvider,
   ChatManager
 } from '@autoplay/chat-interactivity';
-import { MockMinecraftAdapter } from '@autoplay/adapter-minecraft-java';
 
 describe('Chat Interactivity & Viewer Commands', () => {
+  const createMockAdapter = () => ({
+    id: 'mock-game',
+    displayName: 'Mock Game',
+    handleCommand: vi.fn().mockImplementation(async (command: string, args: string[]) => {
+      return { success: true, message: `Executed ${command} ${args.join(' ')}`.trim() };
+    })
+  });
+
   it('CommandRegistry should return help message for !help', async () => {
     const registry = new CommandRegistry();
     const result = await registry.execute('!help', 'Tester');
@@ -18,7 +25,7 @@ describe('Chat Interactivity & Viewer Commands', () => {
 
   it('CommandRegistry should enforce per-user cooldowns', async () => {
     const registry = new CommandRegistry(0, 5000);
-    const mockAdapter = new MockMinecraftAdapter();
+    const mockAdapter = createMockAdapter() as any;
 
     const first = await registry.execute('!jump', 'SpammerUser', mockAdapter);
     expect(first?.success).toBe(true);
@@ -30,7 +37,7 @@ describe('Chat Interactivity & Viewer Commands', () => {
 
   it('CommandRegistry should sanitize argument inputs', async () => {
     const registry = new CommandRegistry(0, 0);
-    const mockAdapter = new MockMinecraftAdapter();
+    const mockAdapter = createMockAdapter() as any;
 
     const result = await registry.execute('!say <script>alert(1)</script>hello', 'User1', mockAdapter);
     expect(result?.success).toBe(true);
@@ -48,7 +55,7 @@ describe('Chat Interactivity & Viewer Commands', () => {
 
   it('MockChatProvider should correctly tag commands and viewer badges', () => {
     const provider = new MockChatProvider();
-    const msg = provider.injectMessage('ViewerX', '!coords', 'sponsor');
+    const msg = provider.injectMessage('ViewerX', '!stats', 'sponsor');
 
     expect(msg.isCommand).toBe(true);
     expect(msg.badge).toBe('sponsor');
@@ -57,7 +64,7 @@ describe('Chat Interactivity & Viewer Commands', () => {
 
   it('ChatManager should coordinate provider, commands, and adapter execution', async () => {
     const chatManager = new ChatManager();
-    const mockAdapter = new MockMinecraftAdapter();
+    const mockAdapter = createMockAdapter() as any;
     chatManager.setActiveAdapter(mockAdapter);
 
     let commandEmitted = false;
