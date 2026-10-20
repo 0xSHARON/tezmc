@@ -21,7 +21,7 @@ AutoPlay AI is a modular, production-ready platform designed to run autonomous g
 
 ## 2. Architecture Overview
 
-```
+```text
                                     +-----------------------------------+
                                     |     Dashboard (React + Vite)      |
                                     +-----------------+-----------------+
@@ -59,6 +59,7 @@ AutoPlay AI is a modular, production-ready platform designed to run autonomous g
 ## 3. Ubuntu 22.04 / 24.04 Deployment
 
 ### Step 1: Install System Prerequisites
+
 ```bash
 sudo apt-get update
 sudo apt-get install -y curl git build-essential ffmpeg xvfb mesa-utils sqlite3
@@ -72,6 +73,7 @@ sudo npm install -g pnpm
 ```
 
 ### Step 2: Clone and Build
+
 ```bash
 git clone <your-repo-url> /opt/autoplay-ai
 cd /opt/autoplay-ai
@@ -86,7 +88,9 @@ pnpm run build
 ```
 
 ### Step 3: Run with systemd
+
 Install the provided systemd service unit:
+
 ```bash
 sudo cp deploy/systemd/autoplay-ai.service /etc/systemd/system/
 sudo systemctl daemon-reload
@@ -96,7 +100,9 @@ sudo systemctl status autoplay-ai
 ```
 
 ### Step 4: Configure Nginx & SSL
+
 Copy `deploy/nginx/nginx.conf` to `/etc/nginx/sites-available/autoplay-ai`:
+
 ```bash
 sudo ln -s /etc/nginx/sites-available/autoplay-ai /etc/nginx/sites-enabled/
 sudo nginx -t
@@ -110,6 +116,7 @@ sudo systemctl restart nginx
 AutoPlay AI includes both physical Minecraft Java server integration and a deterministic **Simulated Autonomous Harness** (`minecraft-java-mock`) that runs out of the box with zero external dependencies.
 
 ### Start All Services (Dev Mode)
+
 ```bash
 # Terminal 1: Control API
 pnpm run dev
@@ -117,15 +124,20 @@ pnpm run dev
 # Terminal 2: Dashboard Frontend
 pnpm run dev:dashboard
 ```
-Open **http://localhost:5173** in your browser. Default local login:
+
+Open [http://localhost:5173](http://localhost:5173) in your browser. Default local login:
+
 - **Username**: `admin`
 - **Password**: `autoplay2026`
 
 ### Run Automated Tests
+
 ```bash
 pnpm test
 ```
+
 The test suite validates:
+
 - Secret redaction for stream keys and credentials
 - Deterministic session state machine transitions and recovery limits
 - Safe FFmpeg argument array construction without shell interpolation.

@@ -223,7 +223,7 @@ export const Overview: React.FC<OverviewProps> = ({
           {logs.length === 0 ? (
             <div className="text-slate-500">System listening for events...</div>
           ) : (
-            logs.slice(-15).map((l, idx) => (
+            logs.slice(-15).map((l: any, idx: number) => (
               <div key={idx} className="flex gap-2 items-start">
                 <span className="text-slate-500 select-none">[{new Date(l.timestamp).toLocaleTimeString()}]</span>
                 <span className={l.level === 'error' ? 'text-rose-400' : l.level === 'warn' ? 'text-amber-400' : 'text-sky-300'}>
