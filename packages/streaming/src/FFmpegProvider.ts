@@ -205,6 +205,7 @@ export class FFmpegProvider extends EventEmitter implements StreamingProvider {
     } else {
       // High-performance synthetic test pattern with real timecodes and audio for dev/CI
       args.push(
+        '-re',
         '-f', 'lavfi',
         '-i', `testsrc=size=${config.width}x${config.height}:rate=${config.fps}`
       );
@@ -212,6 +213,7 @@ export class FFmpegProvider extends EventEmitter implements StreamingProvider {
 
     // Audio Input (Generates silent stereo AAC or sine tone so YouTube doesn't reject video-only stream)
     args.push(
+      '-re',
       '-f', 'lavfi',
       '-i', 'anullsrc=channel_layout=stereo:sample_rate=44100'
     );
@@ -220,6 +222,7 @@ export class FFmpegProvider extends EventEmitter implements StreamingProvider {
     args.push(
       '-c:v', 'libx264',
       '-preset', config.preset || 'veryfast',
+      '-tune', 'zerolatency',
       '-b:v', config.videoBitrate,
       '-maxrate', config.videoBitrate,
       '-bufsize', '5000k',
@@ -232,8 +235,7 @@ export class FFmpegProvider extends EventEmitter implements StreamingProvider {
     args.push(
       '-c:a', 'aac',
       '-b:a', config.audioBitrate,
-      '-ar', '44100',
-      '-shortest'
+      '-ar', '44100'
     );
 
     // Ingest output format: Single FLV or Multi-Stream Tee Muxer
