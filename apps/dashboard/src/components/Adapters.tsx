@@ -25,7 +25,19 @@ export const Adapters: React.FC<AdaptersProps> = ({ adapters, onValidate }) => {
   const handleSelectAdapter = (id: string) => {
     setSelectedAdapter(id);
     setValidationMsg(null);
-    if (id === 'subway-surfers') {
+    if (id === 'pokemon-red') {
+      setConfigJson(JSON.stringify({
+        playerTrainerName: 'RED',
+        rivalName: 'BLUE',
+        mode: 'anarchy',
+        chatCooldownMs: 500,
+        democracyVoteWindowSeconds: 15,
+        enableViewer: true,
+        viewerPort: 3009,
+        autoDownloadRom: true,
+        starterPokemon: 'charmander'
+      }, null, 2));
+    } else if (id === 'subway-surfers') {
       setConfigJson(JSON.stringify({
         botName: 'JakeSurfer',
         mode: 'autonomous_ai',

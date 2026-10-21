@@ -77,8 +77,9 @@ async function bootstrap() {
   schedulerService.start();
 
   // Chat & Viewer Interactivity Manager
+  const activeGame = process.env.ACTIVE_GAME || 'pokemon-red';
   const chatManager = new ChatManager();
-  chatManager.setActiveAdapter(subwaySurfersAdapter);
+  chatManager.setActiveAdapter(activeGame === 'pokemon-red' ? pokemonRedAdapter : subwaySurfersAdapter);
   await chatManager.start();
 
   chatManager.on('chat:message', (msg) => {
@@ -107,7 +108,12 @@ async function bootstrap() {
 
     // Update active adapter for chat commands when session starts
     if (to === 'RUNNING') {
-      chatManager.setActiveAdapter(subwaySurfersAdapter);
+      const activeSess = sessionMachine.getActiveSession();
+      if (activeSess?.gameId === 'pokemon-red') {
+        chatManager.setActiveAdapter(pokemonRedAdapter);
+      } else {
+        chatManager.setActiveAdapter(subwaySurfersAdapter);
+      }
     }
   });
 
@@ -134,6 +140,11 @@ async function bootstrap() {
 
   subwaySurfersAdapter.on('progress', async () => {
     const progress = await subwaySurfersAdapter.getProgress();
+    io.emit(SOCKET_EVENTS.GAME_PROGRESS, progress);
+  });
+
+  pokemonRedAdapter.on('progress', async () => {
+    const progress = await pokemonRedAdapter.getProgress();
     io.emit(SOCKET_EVENTS.GAME_PROGRESS, progress);
   });
 

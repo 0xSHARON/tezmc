@@ -20,7 +20,7 @@ export const Sessions: React.FC<SessionsProps> = ({
   onResume,
   onStop
 }) => {
-  const [selectedGame, setSelectedGame] = useState('subway-surfers');
+  const [selectedGame, setSelectedGame] = useState('pokemon-red');
 
   return (
     <div className="space-y-6">
@@ -35,20 +35,35 @@ export const Sessions: React.FC<SessionsProps> = ({
             onChange={(e) => setSelectedGame(e.target.value)}
             className="bg-slate-900 border border-slate-700 text-sm rounded-lg px-3 py-2 text-white focus:outline-none focus:border-sky-500 font-mono"
           >
+            <option value="pokemon-red">Pokémon Red (Authentic Game Boy AI & Chat Plays)</option>
             <option value="subway-surfers">Subway Surfers (Autonomous 24/7 AI Runner)</option>
           </select>
 
           <button
             onClick={() => {
-              onStart('subway-surfers', {
-                botName: 'JakeSurfer',
-                mode: 'autonomous_ai',
-                difficulty: 'normal',
-                autoRevive: true,
-                viewerPort: 3008,
-                enableViewer: true,
-                startingMultiplier: 10
-              });
+              if (selectedGame === 'pokemon-red') {
+                onStart('pokemon-red', {
+                  playerTrainerName: 'RED',
+                  rivalName: 'BLUE',
+                  mode: 'anarchy',
+                  chatCooldownMs: 500,
+                  democracyVoteWindowSeconds: 15,
+                  enableViewer: true,
+                  viewerPort: 3009,
+                  autoDownloadRom: true,
+                  starterPokemon: 'charmander'
+                });
+              } else {
+                onStart('subway-surfers', {
+                  botName: 'JakeSurfer',
+                  mode: 'autonomous_ai',
+                  difficulty: 'normal',
+                  autoRevive: true,
+                  viewerPort: 3008,
+                  enableViewer: true,
+                  startingMultiplier: 10
+                });
+              }
             }}
             disabled={sessionState === 'RUNNING' || sessionState === 'STARTING_GAME'}
             className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 disabled:text-slate-600 text-white rounded-lg text-sm font-semibold transition-colors cursor-pointer"

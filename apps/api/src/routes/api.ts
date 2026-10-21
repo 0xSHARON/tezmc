@@ -200,9 +200,10 @@ export function createApiRouter(
 
       const activeSession = sessionMachine.getActiveSession();
       if (!activeSession || activeSession.state === 'IDLE' || activeSession.state === 'FAILED') {
+        const activeGameId = process.env.ACTIVE_GAME || 'pokemon-red';
         const sessionInput = SessionCreateSchema.parse({
-          gameId: 'subway-surfers',
-          gameConfig: {
+          gameId: activeGameId === 'subway-surfers' ? 'subway-surfers' : 'pokemon-red',
+          gameConfig: activeGameId === 'subway-surfers' ? {
             botName: 'JakeSurfer',
             mode: 'autonomous_ai',
             difficulty: 'normal',
@@ -210,6 +211,16 @@ export function createApiRouter(
             viewerPort: 3008,
             enableViewer: true,
             startingMultiplier: 10
+          } : {
+            playerTrainerName: 'RED',
+            rivalName: 'BLUE',
+            mode: 'anarchy',
+            chatCooldownMs: 500,
+            democracyVoteWindowSeconds: 15,
+            enableViewer: true,
+            viewerPort: 3009,
+            autoDownloadRom: true,
+            starterPokemon: 'charmander'
           },
           streamConfig: config
         });

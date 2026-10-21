@@ -52,6 +52,6 @@ RUN chmod +x deploy/docker-entrypoint.sh
 
 ENV NODE_ENV=production
 ENV PORT=3000
-EXPOSE 3000 5173 3008
+EXPOSE 3000 5173 3008 3009
 
 ENTRYPOINT ["./deploy/docker-entrypoint.sh"]
