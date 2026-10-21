@@ -20,6 +20,7 @@
       "@autoplay/adapter-sdk": ["./packages/game-adapters/adapter-sdk/dist/index.d.ts"],
       "@autoplay/adapter-subway-surfers": ["./packages/game-adapters/subway-surfers/dist/index.d.ts"],
       "@autoplay/adapter-pokemon-red": ["./packages/game-adapters/pokemon-red/dist/index.d.ts"],
+      "@autoplay/adapter-chrome-dino": ["./packages/game-adapters/chrome-dino/dist/index.d.ts"],
       "@autoplay/session-manager": ["./packages/session-manager/dist/index.d.ts"],
       "@autoplay/capture": ["./packages/capture/dist/index.d.ts"],
       "@autoplay/overlay": ["./packages/overlay/dist/index.d.ts"],

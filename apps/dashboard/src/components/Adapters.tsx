@@ -7,17 +7,16 @@ interface AdaptersProps {
 }
 
 export const Adapters: React.FC<AdaptersProps> = ({ adapters, onValidate }) => {
-  const [selectedAdapter, setSelectedAdapter] = useState<string>(adapters[0]?.id || 'minecraft-java');
+  const [selectedAdapter, setSelectedAdapter] = useState<string>(adapters[0]?.id || 'chrome-dino');
   const [configJson, setConfigJson] = useState<string>(JSON.stringify({
-    host: 'localhost',
-    port: 25565,
-    version: '1.20.1',
-    botName: 'AutoPlayBot',
-    auth: 'offline',
-    exploreRadius: 50,
-    viewerPort: 3007,
+    botName: 'DinoAI',
+    mode: 'autonomous_ai',
+    difficulty: 'normal',
+    autoRestart: true,
+    viewerPort: 3010,
     enableViewer: true,
-    objective: 'bounded_exploration'
+    theme: 'brutalist_dark',
+    jumpReactionDistance: 120
   }, null, 2));
 
   const [validationMsg, setValidationMsg] = useState<{ valid: boolean; text: string } | null>(null);
@@ -25,39 +24,25 @@ export const Adapters: React.FC<AdaptersProps> = ({ adapters, onValidate }) => {
   const handleSelectAdapter = (id: string) => {
     setSelectedAdapter(id);
     setValidationMsg(null);
-    if (id === 'pokemon-red') {
+    if (id === 'chrome-dino') {
       setConfigJson(JSON.stringify({
-        playerTrainerName: 'RED',
-        rivalName: 'BLUE',
-        mode: 'anarchy',
-        chatCooldownMs: 500,
-        democracyVoteWindowSeconds: 15,
-        enableViewer: true,
-        viewerPort: 3009,
-        autoDownloadRom: true,
-        starterPokemon: 'charmander'
-      }, null, 2));
-    } else if (id === 'subway-surfers') {
-      setConfigJson(JSON.stringify({
-        botName: 'JakeSurfer',
+        botName: 'DinoAI',
         mode: 'autonomous_ai',
         difficulty: 'normal',
-        autoRevive: true,
-        viewerPort: 3008,
+        autoRestart: true,
+        viewerPort: 3010,
         enableViewer: true,
-        startingMultiplier: 10
+        theme: 'brutalist_dark',
+        jumpReactionDistance: 120
       }, null, 2));
     } else {
       setConfigJson(JSON.stringify({
-        host: 'localhost',
-        port: 25565,
-        version: '1.20.1',
-        botName: 'AutoPlayBot',
-        auth: 'offline',
-        exploreRadius: 50,
-        viewerPort: 3007,
-        enableViewer: true,
-        objective: 'bounded_exploration'
+        botName: 'DinoAI',
+        mode: 'autonomous_ai',
+        difficulty: 'normal',
+        autoRestart: true,
+        viewerPort: 3010,
+        enableViewer: true
       }, null, 2));
     }
   };

@@ -200,27 +200,17 @@ export function createApiRouter(
 
       const activeSession = sessionMachine.getActiveSession();
       if (!activeSession || activeSession.state === 'IDLE' || activeSession.state === 'FAILED') {
-        const activeGameId = process.env.ACTIVE_GAME || 'pokemon-red';
         const sessionInput = SessionCreateSchema.parse({
-          gameId: activeGameId === 'subway-surfers' ? 'subway-surfers' : 'pokemon-red',
-          gameConfig: activeGameId === 'subway-surfers' ? {
-            botName: 'JakeSurfer',
+          gameId: 'chrome-dino',
+          gameConfig: {
+            botName: 'DinoAI',
             mode: 'autonomous_ai',
             difficulty: 'normal',
-            autoRevive: true,
-            viewerPort: 3008,
+            autoRestart: true,
+            viewerPort: 3010,
             enableViewer: true,
-            startingMultiplier: 10
-          } : {
-            playerTrainerName: 'RED',
-            rivalName: 'BLUE',
-            mode: 'anarchy',
-            chatCooldownMs: 500,
-            democracyVoteWindowSeconds: 15,
-            enableViewer: true,
-            viewerPort: 3009,
-            autoDownloadRom: true,
-            starterPokemon: 'charmander'
+            theme: 'brutalist_dark',
+            jumpReactionDistance: 120
           },
           streamConfig: config
         });

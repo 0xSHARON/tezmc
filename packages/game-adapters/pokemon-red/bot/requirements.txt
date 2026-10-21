@@ -1,7 +1,0 @@
-pyboy>=2.0.0
-numpy>=1.22.0
-gymnasium>=1.0.0
-opencv-python>=4.8.0
-Pillow>=10.0.0
-pytesseract>=0.3.10
-pytest>=7.0.0

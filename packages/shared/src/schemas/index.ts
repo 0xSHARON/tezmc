@@ -30,32 +30,18 @@ export const StreamStatusEnum = z.enum([
 ]);
 export type StreamStatus = z.infer<typeof StreamStatusEnum>;
 
-export const SubwaySurfersConfigSchema = z.object({
-  botName: z.string().min(1).max(24).default('JakeSurfer'),
-  mode: z.enum(['autonomous_ai', 'chat_democracy', 'hybrid']).default('autonomous_ai'),
-  difficulty: z.enum(['casual', 'normal', 'hardcore']).default('normal'),
-  autoRevive: z.boolean().default(true),
-  viewerPort: z.number().int().min(1024).max(65535).default(3008),
+export const ChromeDinoConfigSchema = z.object({
+  botName: z.string().min(1).max(24).default('DinoAI'),
+  mode: z.enum(['autonomous_ai', 'chat_democracy', 'hybrid', 'manual']).default('autonomous_ai'),
+  difficulty: z.enum(['normal', 'hard', 'insane']).default('normal'),
+  autoRestart: z.boolean().default(true),
+  viewerPort: z.number().int().min(1024).max(65535).default(3015),
   enableViewer: z.boolean().default(true),
-  startingMultiplier: z.number().int().min(1).max(30).default(10)
+  theme: z.enum(['classic', 'brutalist_dark', 'neon']).default('brutalist_dark'),
+  jumpReactionDistance: z.number().int().min(50).max(300).default(120)
 });
 
-export type SubwaySurfersConfig = z.infer<typeof SubwaySurfersConfigSchema>;
-
-export const PokemonRedConfigSchema = z.object({
-  playerTrainerName: z.string().min(1).max(12).default('RED'),
-  rivalName: z.string().min(1).max(12).default('BLUE'),
-  mode: z.enum(['anarchy', 'democracy', 'hybrid', 'autonomous_ai']).default('anarchy'),
-  chatCooldownMs: z.number().int().min(100).max(10000).default(500),
-  democracyVoteWindowSeconds: z.number().int().min(5).max(60).default(15),
-  enableViewer: z.boolean().default(true),
-  viewerPort: z.number().int().min(1024).max(65535).default(3009),
-  romPath: z.string().optional(),
-  autoDownloadRom: z.boolean().default(true),
-  starterPokemon: z.enum(['charmander', 'squirtle', 'bulbasaur']).default('charmander')
-});
-
-export type PokemonRedConfig = z.infer<typeof PokemonRedConfigSchema>;
+export type ChromeDinoConfig = z.infer<typeof ChromeDinoConfigSchema>;
 
 export const StreamDestinationSchema = z.object({
   id: z.string().default(() => Math.random().toString(36).substring(2, 9)),

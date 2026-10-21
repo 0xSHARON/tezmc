@@ -195,6 +195,31 @@ importers:
         specifier: ^5.7.2
         version: 5.9.3
 
+  packages/game-adapters/chrome-dino:
+    dependencies:
+      '@autoplay/adapter-sdk':
+        specifier: workspace:*
+        version: link:../adapter-sdk
+      '@autoplay/shared':
+        specifier: workspace:*
+        version: link:../../shared
+      ws:
+        specifier: ^8.18.0
+        version: 8.21.3
+      zod:
+        specifier: ^3.24.1
+        version: 3.25.76
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.5
+      '@types/ws':
+        specifier: ^8.5.13
+        version: 8.18.2
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
   packages/game-adapters/pokemon-red:
     dependencies:
       '@autoplay/adapter-sdk':

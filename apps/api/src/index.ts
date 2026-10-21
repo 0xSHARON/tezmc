@@ -5,8 +5,7 @@ import cors from 'cors';
 import { Server as SocketIOServer } from 'socket.io';
 import { SOCKET_EVENTS, SecretRedactor } from '@autoplay/shared';
 import { AdapterRegistry } from '@autoplay/adapter-sdk';
-import { SubwaySurfersAdapter, SubwaySurfersEngine } from '@autoplay/adapter-subway-surfers';
-import { PokemonRedAdapter } from '@autoplay/adapter-pokemon-red';
+import { ChromeDinoAdapter } from '@autoplay/adapter-chrome-dino';
 import { StreamingManager } from '@autoplay/streaming';
 import { SessionStateMachine } from '@autoplay/session-manager';
 import { MonitoringService } from '@autoplay/monitoring';
@@ -40,18 +39,12 @@ async function bootstrap() {
 
   // Adapter Registry & Registration
   const registry = AdapterRegistry.getInstance();
-  const subwaySurfersAdapter = new SubwaySurfersAdapter();
-  registry.register(subwaySurfersAdapter);
+  const chromeDinoAdapter = new ChromeDinoAdapter();
+  registry.register(chromeDinoAdapter);
 
-  const pokemonRedAdapter = new PokemonRedAdapter();
-  registry.register(pokemonRedAdapter);
-
-  // Initialize 24/7 standby visual streamers on dedicated viewer ports
-  await subwaySurfersAdapter.initializeStandbyViewer(3008).catch((err) => {
-    logger.warn({ err }, 'Failed to bind Subway Surfers standby viewer on port 3008');
-  });
-  await pokemonRedAdapter.initializeStandbyViewer(3009).catch((err) => {
-    logger.warn({ err }, 'Failed to bind Pokemon Red standby viewer on port 3009');
+  // Initialize 24/7 standby visual streamer
+  await chromeDinoAdapter.initializeStandbyViewer(3010).catch((err) => {
+    logger.warn({ err }, 'Failed to bind Chrome Dino standby viewer on port 3010');
   });
 
   // Streaming & Session Manager
@@ -77,9 +70,8 @@ async function bootstrap() {
   schedulerService.start();
 
   // Chat & Viewer Interactivity Manager
-  const activeGame = process.env.ACTIVE_GAME || 'pokemon-red';
   const chatManager = new ChatManager();
-  chatManager.setActiveAdapter(activeGame === 'pokemon-red' ? pokemonRedAdapter : subwaySurfersAdapter);
+  chatManager.setActiveAdapter(chromeDinoAdapter);
   await chatManager.start();
 
   chatManager.on('chat:message', (msg) => {
@@ -106,14 +98,9 @@ async function bootstrap() {
     });
     logger.info({ state: to, reason }, 'Session state transition');
 
-    // Update active adapter for chat commands when session starts
+    // Always use Chrome Dino adapter for chat commands
     if (to === 'RUNNING') {
-      const activeSess = sessionMachine.getActiveSession();
-      if (activeSess?.gameId === 'pokemon-red') {
-        chatManager.setActiveAdapter(pokemonRedAdapter);
-      } else {
-        chatManager.setActiveAdapter(subwaySurfersAdapter);
-      }
+      chatManager.setActiveAdapter(chromeDinoAdapter);
     }
   });
 
@@ -138,13 +125,8 @@ async function bootstrap() {
     io.emit(SOCKET_EVENTS.SYSTEM_METRICS, metrics);
   });
 
-  subwaySurfersAdapter.on('progress', async () => {
-    const progress = await subwaySurfersAdapter.getProgress();
-    io.emit(SOCKET_EVENTS.GAME_PROGRESS, progress);
-  });
-
-  pokemonRedAdapter.on('progress', async () => {
-    const progress = await pokemonRedAdapter.getProgress();
+  chromeDinoAdapter.on('progress', async () => {
+    const progress = await chromeDinoAdapter.getProgress();
     io.emit(SOCKET_EVENTS.GAME_PROGRESS, progress);
   });
 
@@ -157,14 +139,19 @@ async function bootstrap() {
     res.send(OverlayServer.getHtml());
   });
 
-  // Subway Surfers Visual Streamer Endpoint on Control API (port 3000)
-  app.get(['/subway', '/subway/', '/subway/*'], (_req, res) => {
-    res.setHeader('Content-Type', 'text/html');
-    res.send(SubwaySurfersEngine.getCanvasHtml());
+  // Chrome Dino Visual Viewer Endpoint - redirects to the engine's built-in HTTP server
+  app.get(['/dino', '/dino/', '/dino/stream'], (_req, res) => {
+    const engine = chromeDinoAdapter.getEngine();
+    if (engine) {
+      res.redirect(`http://localhost:3010`);
+    } else {
+      res.setHeader('Content-Type', 'text/html');
+      res.send(`<!DOCTYPE html><html><head><title>Chrome Dino - TEZMC</title><style>body{background:#111;color:#0f0;font-family:monospace;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;}</style></head><body><h1>🦕 Chrome Dino Engine not running — start a session first.</h1></body></html>`);
+    }
   });
 
-  app.get('/subway/state', (_req, res) => {
-    const engine = subwaySurfersAdapter.getEngine();
+  app.get('/dino/state', (_req, res) => {
+    const engine = chromeDinoAdapter.getEngine();
     if (engine) {
       res.json({
         state: engine.getState(),
@@ -172,7 +159,7 @@ async function bootstrap() {
       });
     } else {
       res.json({
-        state: { score: 0, coins: 0, multiplier: 10, speedKmh: 45 },
+        state: { score: 0, highScore: 0, speed: 6, distance: 0 },
         lastAction: 'STANDBY'
       });
     }
@@ -212,6 +199,7 @@ async function bootstrap() {
 
   server.listen(PORT, HOST, () => {
     logger.info(`TEZMC Control API listening on http://${HOST}:${PORT}`);
+    logger.info(`Chrome Dino viewer available at http://${HOST}:${PORT}/dino`);
     logger.info(`Overlay URL available at http://${HOST}:${PORT}/overlay`);
   });
 }
