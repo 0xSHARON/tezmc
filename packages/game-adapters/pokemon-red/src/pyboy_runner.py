@@ -208,6 +208,9 @@ class EmulationServer:
         player_name_byte = mem[ADDR_PLAYER_NAME]
         rival_name_byte = mem[ADDR_RIVAL_NAME]
 
+        joy_ignore = mem[0xCFCB]
+        text_id = mem[0xC100]
+
         # 1. Screen fade protection: wait for scene to fade in
         if bgp == 0:
             return
@@ -219,8 +222,8 @@ class EmulationServer:
             self.stuck_counter = 0
             self.last_pos = current_pos
 
-        # Check if in intro/naming sequence
-        in_intro = (player_name_byte in (0, 0x50) or rival_name_byte in (0, 0x50))
+        # Check if in intro/naming sequence (all joypad buttons blocked by engine)
+        in_intro = (joy_ignore == 255 or player_name_byte in (0, 0x50) or rival_name_byte in (0, 0x50))
 
         # Check inventory for Oak's Parcel (Item ID 0x46)
         num_items = min(20, mem[0xD31D])
@@ -260,45 +263,46 @@ class EmulationServer:
                 else:
                     btn = "a"
 
-        # 3. Text box or Menu State
-        elif font_loaded != 0:
+        # 3. Intro Cutscene & Naming Screen State (joy_ignore == 255)
+        elif in_intro and joy_ignore == 255:
             self.was_dialogue = True
-            if in_intro:
-                # Title screen or name selection
-                if self.copilot_tick % 180 == 0:
-                    btn = "start"
-                elif self.stuck_counter > 20 and self.copilot_tick % 30 == 0:
-                    btn = "down" # Move cursor from "NEW NAME" to "RED" / "BLUE"
-                else:
-                    btn = "a"
-            elif map_id == 0x28 and party_count > 0 and not self.starter_picked:
-                # Starter nickname prompt -> press B to decline nickname
-                self.starter_picked = True
-                btn = "b"
-            elif self.stuck_counter > 30:
-                # Menu stuck watchdog -> alternate B (dismiss) and A
-                btn = "b" if (self.copilot_tick % 20 == 0) else "a"
+            # Press A to select letters, periodically press START to confirm name
+            if self.copilot_tick % 15 == 14:
+                btn = "start"
             else:
                 btn = "a"
 
-        # 4. Dialogue just closed -> step away immediately to avoid reopening on interactive tiles!
+        # 4. Text box or Scripted Dialogue State
+        elif font_loaded != 0 or (joy_ignore != 0 and joy_ignore != 1):
+            self.was_dialogue = True
+            if map_id == 0x28 and party_count > 0 and not self.starter_picked:
+                # Starter nickname prompt -> press B to decline nickname
+                self.starter_picked = True
+                btn = "b"
+            elif self.stuck_counter > 20:
+                # Menu stuck watchdog -> alternate B (dismiss) and A
+                btn = "b" if (self.copilot_tick % 2 == 0) else "a"
+            else:
+                btn = "a" if (self.copilot_tick % 2 == 0) else "b"
+
+        # 5. Dialogue just closed -> step away immediately to avoid reopening on interactive tiles!
         elif self.was_dialogue:
             self.was_dialogue = False
-            if map_id == 0x26 and y <= 6:
-                btn = "down" # Step away from TV/SNES
+            if map_id == 0x26:
+                btn = "right" if (x == 3 and y == 6) else "up"
             elif map_id == 0x28 and party_count == 0:
                 btn = "up"
             else:
                 btn = "down"
 
-        # 5. Anti-Stuck in Overworld
-        elif self.stuck_counter > 12:
-            jiggle = ["down", "right", "left", "up"]
+        # 6. Anti-Stuck in Overworld
+        elif self.stuck_counter > 14:
+            jiggle = ["up", "right", "down", "left"]
             btn = jiggle[(self.stuck_counter // 4) % 4]
-            if self.stuck_counter > 35 and self.stuck_counter % 8 == 0:
+            if self.stuck_counter > 30 and self.stuck_counter % 6 == 0:
                 btn = "b"
 
-        # 6. Pokémon Center Healing (Viridian: 0x18, 0x29, Pewter: 0x3A, Cerulean: 0x40)
+        # 7. Pokémon Center Healing (Viridian: 0x18, 0x29, Pewter: 0x3A, Cerulean: 0x40)
         elif map_id in (0x18, 0x29, 0x3A, 0x40):
             if hp_ratio < 0.99:
                 if x < 3:
@@ -313,31 +317,40 @@ class EmulationServer:
                 # Healed: step down to exit mat
                 btn = "down"
 
-        # 7. Overworld Map Progression & Waypoints
+        # 8. Overworld Map Progression & Waypoints
         elif map_id == 0x26:
             # Red's House 2F (Bedroom) -> Stairs at (7, 1)
-            if y < 7 and x < 6:
-                btn = "down"
-            elif x < 7:
-                btn = "right"
-            elif y > 1:
+            # Avoid the potted plant at x=4..7, y=6..7 and SNES at (3, 5)
+            if x == 7:
                 btn = "up"
+            elif y > 2:
+                if x == 3 and y == 6:
+                    btn = "right" # step away from SNES
+                elif y == 7:
+                    btn = "up" if x >= 4 else "right"
+                else:
+                    btn = "up"
+            elif y < 2:
+                btn = "down"
             else:
+                # Row 2 (y==2) is completely clear! Walk straight right to column 7
                 btn = "right"
 
         elif map_id == 0x25:
-            # Red's House 1F (Living Room) -> Door at (3, 7)
-            if x > 3:
-                btn = "left"
-            elif y < 7:
+            # Red's House 1F (Living Room) -> Door at (3, 7) or (3, 8)
+            if y < 6:
                 btn = "down"
+            elif x > 3:
+                btn = "left"
+            elif x < 3:
+                btn = "right"
             else:
                 btn = "down"
 
         elif map_id == 0x00:
             # Pallet Town
             if party_count == 0:
-                # Walk North to trigger Oak in tall grass
+                # Walk North into tall grass at (10, 1) to trigger Oak
                 if x < 10:
                     btn = "right"
                 elif x > 11:
