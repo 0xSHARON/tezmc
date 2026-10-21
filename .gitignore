@@ -21,3 +21,4 @@ data/
 __pycache__/
 *.pyc
 .pytest_cache/
+*.jsonl

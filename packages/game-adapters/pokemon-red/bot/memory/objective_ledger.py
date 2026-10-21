@@ -488,8 +488,16 @@ class ObjectiveLedger:
             if obj.status == "available":
                 obj.status = "in_progress"
 
+    def mark_blocked(self, obj_id: str, reason: str = ""):
+        """Marks an objective as blocked due to missing prerequisites or unreachable state."""
+        if obj_id in self.objectives:
+            obj = self.objectives[obj_id]
+            obj.status = "blocked"
+            obj.last_failure_reason = reason
+            print(f"[ObjectiveLedger] Objective [{obj_id}] BLOCKED: {reason}")
+
     def reset_failed_objective(self, obj_id: str):
-        """Resets a failed objective to available for bounded recovery."""
+        """Resets a failed or blocked objective to available for bounded recovery."""
         if obj_id in self.objectives:
             obj = self.objectives[obj_id]
             obj.status = "available"

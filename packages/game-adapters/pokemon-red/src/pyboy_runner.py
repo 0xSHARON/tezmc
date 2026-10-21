@@ -269,9 +269,31 @@ class EmulationServer:
         badges_byte = mem[ADDR_BADGES]
         boulder_badge = bool(badges_byte & 1)
 
+        # Decay avoidance penalties periodically
+        if not hasattr(self, "avoidance_penalties"):
+            self.avoidance_penalties = {}
+        if not hasattr(self, "last_map_id"):
+            self.last_map_id = map_id
+        if not hasattr(self, "last_btn"):
+            self.last_btn = "down"
+
+        if map_id != self.last_map_id:
+            self.avoidance_penalties.clear()
+            self.last_map_id = map_id
+
+        for k in list(self.avoidance_penalties.keys()):
+            self.avoidance_penalties[k] = max(0, self.avoidance_penalties[k] - 1)
+            if self.avoidance_penalties[k] == 0:
+                del self.avoidance_penalties[k]
+
+        # Record collision penalty if previous movement action produced no displacement
+        if current_pos == self.last_pos and self.stuck_counter > 0 and self.last_btn in ("up", "down", "left", "right"):
+            pen_key = (map_id, x, y, self.last_btn)
+            self.avoidance_penalties[pen_key] = self.avoidance_penalties.get(pen_key, 0) + 15
+
         btn = None
 
-        # 2. Battle State: Auto-fight, select moves, retreat on critical HP
+        # 2. Battle State: Auto-fight with Move PP Verification and retreat on critical HP
         if in_battle != 0:
             self.was_dialogue = False
             self.battle_tick = getattr(self, "battle_tick", 0) + 1
@@ -288,11 +310,35 @@ class EmulationServer:
                 else:
                     btn = "b"
             else:
-                # Combat attack cycle: advance dialogue if open, otherwise press A for FIGHT -> Move 1
+                # Combat attack cycle with PP check
+                # Read move PPs for lead Pokémon (0xD188..0xD18B)
+                pp1 = mem[0xD188] & 0x3F if party_count > 0 else 35
+                pp2 = mem[0xD189] & 0x3F if party_count > 0 else 0
+                pp3 = mem[0xD18A] & 0x3F if party_count > 0 else 0
+                pp4 = mem[0xD18B] & 0x3F if party_count > 0 else 0
+                usable = [idx + 1 for idx, p in enumerate([pp1, pp2, pp3, pp4]) if p > 0]
+                best_slot = usable[0] if usable else 1
+
                 if font_loaded != 0:
+                    # Advance dialogue or battle message
                     btn = "a" if (self.battle_tick % 2 == 0) else "b"
                 else:
-                    btn = "a"
+                    phase = self.battle_tick % 4
+                    if phase == 0:
+                        btn = "a"  # Select FIGHT
+                    elif phase == 1:
+                        if best_slot == 2:
+                            btn = "down"
+                        elif best_slot == 3:
+                            btn = "right"
+                        elif best_slot == 4:
+                            btn = "down"
+                        else:
+                            btn = "a"  # Confirm Move 1
+                    elif phase == 2:
+                        btn = "a"  # Execute Move
+                    else:
+                        btn = "b"  # Fallback text dismiss
 
         # 3. Intro Cutscene & Naming Screen State (joy_ignore == 255)
         elif in_intro and joy_ignore == 255:
@@ -326,12 +372,19 @@ class EmulationServer:
             else:
                 btn = "down"
 
-        # 6. Anti-Stuck in Overworld
-        elif self.stuck_counter > 14:
-            jiggle = ["up", "right", "down", "left"]
-            btn = jiggle[(self.stuck_counter // 4) % 4]
-            if self.stuck_counter > 30 and self.stuck_counter % 6 == 0:
-                btn = "b"
+        # 6. Anti-Stuck Detour with Avoidance Penalties (Deterministic, No Randomness)
+        elif self.stuck_counter > 8:
+            candidates = ["up", "right", "down", "left"]
+            best_dir = "down"
+            min_penalty = float("inf")
+            for d in candidates:
+                pen = self.avoidance_penalties.get((map_id, x, y, d), 0)
+                if pen < min_penalty:
+                    min_penalty = pen
+                    best_dir = d
+            btn = best_dir
+            if self.stuck_counter > 25 and self.stuck_counter % 5 == 0:
+                btn = "b"  # Dismiss any hidden menu or interaction prompt
 
         # 7. Pokémon Center Healing (Viridian: 0x18, 0x29, Pewter: 0x3A, Cerulean: 0x40)
         elif map_id in (0x18, 0x29, 0x3A, 0x40):
@@ -343,9 +396,9 @@ class EmulationServer:
                 elif y > 4:
                     btn = "up"
                 else:
-                    btn = "a" # Talk to nurse
+                    btn = "a"  # Talk to nurse
             else:
-                # Healed: step down to exit mat
+                # Full health: immediately step down to exit mat to prevent nurse looping
                 btn = "down"
 
         # 8. Overworld Map Progression & Waypoints
@@ -786,6 +839,7 @@ class EmulationServer:
             btn = dirs[(self.copilot_tick // 30) % 4]
 
         if btn:
+            self.last_btn = btn
             self.pyboy.button(btn, 10)
             map_label = MAP_NAMES.get(map_id, f"Map {map_id:#04x}")
             self.last_action_desc = f"[AI BOT] ACTION [{btn.upper()}] ({map_label} ({x},{y}))"
