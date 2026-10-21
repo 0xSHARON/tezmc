@@ -2,11 +2,11 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import { SessionStateMachine } from '@autoplay/session-manager';
 import { StreamingManager } from '@autoplay/streaming';
 import { AdapterRegistry } from '@autoplay/adapter-sdk';
-import { SubwaySurfersAdapter } from '@autoplay/adapter-subway-surfers';
+import { ChromeDinoAdapter } from '@autoplay/adapter-chrome-dino';
 
 describe('SessionStateMachine', () => {
   const streamingManager = new StreamingManager();
-  const mockAdapter = new SubwaySurfersAdapter();
+  const mockAdapter = new ChromeDinoAdapter();
 
   beforeAll(() => {
     const reg = AdapterRegistry.getInstance();
@@ -25,14 +25,12 @@ describe('SessionStateMachine', () => {
     const sm = new SessionStateMachine(streamingManager, 3, 1);
 
     await sm.start({
-      gameId: 'subway-surfers',
+      gameId: 'chrome-dino',
       gameConfig: {
-        botName: 'TestBot',
         mode: 'autonomous_ai',
-        difficulty: 'normal',
-        autoRevive: true,
-        enableViewer: false,
-        startingMultiplier: 10
+        speedMultiplier: 1.0,
+        autoRestart: true,
+        enableViewer: false
       },
       maxHours: 1,
       alwaysOn: false

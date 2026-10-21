@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { BRAND } from '@autoplay/shared';
 import { OverlayServer } from '@autoplay/overlay';
-import { SubwaySurfersAdapter } from '@autoplay/adapter-subway-surfers';
+import { ChromeDinoAdapter } from '@autoplay/adapter-chrome-dino';
 
 describe('TEZMC Rebranding Verification Tests', () => {
   it('BRAND constants should define TEZMC identity correctly', () => {
@@ -23,8 +23,8 @@ describe('TEZMC Rebranding Verification Tests', () => {
     expect(html).not.toContain('AutoPlay AI');
   });
 
-  it('SubwaySurfersAdapter should have TEZMC displayName', () => {
-    const adapter = new SubwaySurfersAdapter();
-    expect(adapter.displayName).toBe('Subway Surfers (Autonomous 24/7)');
+  it('ChromeDinoAdapter should have TEZMC displayName', () => {
+    const adapter = new ChromeDinoAdapter();
+    expect(adapter.displayName).toBe('Chrome Dinosaur (T-Rex Runner 24/7 AI)');
   });
 });

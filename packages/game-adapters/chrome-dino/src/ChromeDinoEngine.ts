@@ -380,13 +380,13 @@ export class ChromeDinoEngine extends EventEmitter {
           return;
         }
 
-        if (url.startsWith('/state') || url.startsWith('/dino/state')) {
+        if (url.includes('/state')) {
           res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify(this.state));
+          res.end(JSON.stringify({ ...this.state, obstacles: this.obstacles }));
           return;
         }
 
-        if (req.method === 'POST' && (url.startsWith('/action') || url.startsWith('/dino/action'))) {
+        if (req.method === 'POST' && url.includes('/action')) {
           let body = '';
           req.on('data', (chunk) => {
             body += chunk;
@@ -572,23 +572,27 @@ export class ChromeDinoEngine extends EventEmitter {
       { x: 1100, y: 100, speed: 0.9 }
     ];
 
-    let groundOffset = 0;
+    function getApiUrl(endpoint) {
+      let base = window.location.pathname.replace(/\/+$/, '');
+      return (base ? base : '') + '/' + endpoint;
+    }
 
     async function syncState() {
       try {
-        const res = await fetch('/state');
+        const res = await fetch(getApiUrl('state'));
         if (res.ok) {
-          state = await res.json();
+          const fresh = await res.json();
+          state = fresh;
           document.getElementById('valScore').textContent = String(state.score).padStart(5, '0');
           document.getElementById('valHi').textContent = String(state.highScore).padStart(5, '0');
-          document.getElementById('valSpeed').textContent = state.speed.toFixed(1);
+          document.getElementById('valSpeed').textContent = Number(state.speed).toFixed(1);
         }
       } catch (e) {}
     }
-    setInterval(syncState, 150);
+    setInterval(syncState, 100);
 
     function sendAction(action) {
-      fetch('/action', {
+      fetch(getApiUrl('action'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ command: action, sender: 'WebViewer' })
@@ -633,6 +637,38 @@ export class ChromeDinoEngine extends EventEmitter {
         let gx = (x - groundOffset + 1280) % 1280;
         ctx.fillRect(gx, 596, 8, 4);
         ctx.fillRect(gx + 22, 606, 12, 3);
+      }
+
+      // Draw Obstacles (Cacti and Pterodactyls)
+      if (state.obstacles && state.obstacles.length > 0) {
+        state.obstacles.forEach(obs => {
+          if (obs.type.startsWith('CACTUS')) {
+            // Crisp brutalist emerald cactus
+            ctx.fillStyle = '#10b981';
+            // Main stem
+            ctx.fillRect(obs.x + obs.width * 0.35, obs.y, obs.width * 0.3, obs.height);
+            // Left branch
+            ctx.fillRect(obs.x, obs.y + obs.height * 0.28, obs.width * 0.35, obs.height * 0.18);
+            ctx.fillRect(obs.x, obs.y + obs.height * 0.15, obs.width * 0.15, obs.height * 0.22);
+            // Right branch
+            ctx.fillRect(obs.x + obs.width * 0.65, obs.y + obs.height * 0.38, obs.width * 0.35, obs.height * 0.18);
+            ctx.fillRect(obs.x + obs.width * 0.85, obs.y + obs.height * 0.22, obs.width * 0.15, obs.height * 0.24);
+          } else if (obs.type.startsWith('PTERODACTYL')) {
+            // Soaring Pterodactyl with animated flapping wings
+            ctx.fillStyle = '#38bdf8';
+            ctx.fillRect(obs.x + 10, obs.y + 12, obs.width - 20, 16); // body
+            ctx.fillRect(obs.x, obs.y + 14, 14, 10); // beak
+            ctx.fillStyle = '#090a0f';
+            ctx.fillRect(obs.x + 4, obs.y + 16, 3, 3); // eye
+            ctx.fillStyle = '#38bdf8';
+            const wingUp = Math.floor(Date.now() / 120) % 2 === 0;
+            if (wingUp) {
+              ctx.fillRect(obs.x + 16, obs.y - 12, 16, 24); // wing up
+            } else {
+              ctx.fillRect(obs.x + 16, obs.y + 18, 16, 22); // wing down
+            }
+          }
+        });
       }
 
       // Draw Dinosaur

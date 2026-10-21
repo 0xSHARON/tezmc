@@ -363,19 +363,19 @@ export class OverlayServer {
     </div>
     <div class="status-row">
       <span>Game:</span>
-      <span id="game-name" class="value-badge">Subway Surfers</span>
+      <span id="game-name" class="value-badge">Chrome Dinosaur</span>
       <span>State:</span>
       <span id="session-state" class="value-badge" style="color: #6ee7b7">RUNNING</span>
     </div>
     <div class="status-row">
       <span>Objective:</span>
-      <span id="objective" style="font-weight: 600; color: #fde047">Autonomous AI Run</span>
+      <span id="objective" style="font-weight: 600; color: #fde047">Obstacle Avoidance & Reflex AI</span>
     </div>
     <div class="status-row">
       <span>AI Score:</span>
       <span id="coords" class="value-badge">Score: 0</span>
-      <span>Multiplier:</span>
-      <span id="traveled" class="value-badge">x10</span>
+      <span>Speed:</span>
+      <span id="traveled" class="value-badge">8.0</span>
     </div>
   </div>
 

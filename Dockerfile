@@ -13,13 +13,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     procps \
     curl \
     ca-certificates \
-    python3 \
-    python3-pip \
-    python3-pil \
-    libsdl2-2.0-0 \
     && rm -rf /var/lib/apt/lists/*
-
-RUN pip3 install --no-cache-dir pyboy pillow --break-system-packages
 
 RUN npm install -g pnpm
 
@@ -29,8 +23,7 @@ COPY apps/api/package.json ./apps/api/
 COPY apps/dashboard/package.json ./apps/dashboard/
 COPY packages/shared/package.json ./packages/shared/
 COPY packages/game-adapters/adapter-sdk/package.json ./packages/game-adapters/adapter-sdk/
-COPY packages/game-adapters/subway-surfers/package.json ./packages/game-adapters/subway-surfers/
-COPY packages/game-adapters/pokemon-red/package.json ./packages/game-adapters/pokemon-red/
+COPY packages/game-adapters/chrome-dino/package.json ./packages/game-adapters/chrome-dino/
 COPY packages/streaming/package.json ./packages/streaming/
 COPY packages/capture/package.json ./packages/capture/
 COPY packages/overlay/package.json ./packages/overlay/
@@ -52,6 +45,6 @@ RUN chmod +x deploy/docker-entrypoint.sh
 
 ENV NODE_ENV=production
 ENV PORT=3000
-EXPOSE 3000 5173 3008 3009
+EXPOSE 3000 5173 3010
 
 ENTRYPOINT ["./deploy/docker-entrypoint.sh"]

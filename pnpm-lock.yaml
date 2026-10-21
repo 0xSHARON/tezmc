@@ -33,15 +33,12 @@ importers:
 
   apps/api:
     dependencies:
-      '@autoplay/adapter-pokemon-red':
+      '@autoplay/adapter-chrome-dino':
         specifier: workspace:*
-        version: link:../../packages/game-adapters/pokemon-red
+        version: link:../../packages/game-adapters/chrome-dino
       '@autoplay/adapter-sdk':
         specifier: workspace:*
         version: link:../../packages/game-adapters/adapter-sdk
-      '@autoplay/adapter-subway-surfers':
-        specifier: workspace:*
-        version: link:../../packages/game-adapters/subway-surfers
       '@autoplay/capture':
         specifier: workspace:*
         version: link:../../packages/capture
@@ -216,44 +213,6 @@ importers:
       '@types/ws':
         specifier: ^8.5.13
         version: 8.18.2
-      typescript:
-        specifier: ^5.7.2
-        version: 5.9.3
-
-  packages/game-adapters/pokemon-red:
-    dependencies:
-      '@autoplay/adapter-sdk':
-        specifier: workspace:*
-        version: link:../adapter-sdk
-      '@autoplay/shared':
-        specifier: workspace:*
-        version: link:../../shared
-      zod:
-        specifier: ^3.24.1
-        version: 3.25.76
-    devDependencies:
-      '@types/node':
-        specifier: ^22.10.2
-        version: 22.20.5
-      typescript:
-        specifier: ^5.7.2
-        version: 5.9.3
-
-  packages/game-adapters/subway-surfers:
-    dependencies:
-      '@autoplay/adapter-sdk':
-        specifier: workspace:*
-        version: link:../adapter-sdk
-      '@autoplay/shared':
-        specifier: workspace:*
-        version: link:../../shared
-      zod:
-        specifier: ^3.24.1
-        version: 3.25.76
-    devDependencies:
-      '@types/node':
-        specifier: ^22.10.2
-        version: 22.20.5
       typescript:
         specifier: ^5.7.2
         version: 5.9.3

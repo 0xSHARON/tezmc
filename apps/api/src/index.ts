@@ -139,29 +139,51 @@ async function bootstrap() {
     res.send(OverlayServer.getHtml());
   });
 
-  // Chrome Dino Visual Viewer Endpoint - redirects to the engine's built-in HTTP server
-  app.get(['/dino', '/dino/', '/dino/stream'], (_req, res) => {
+  // Chrome Dino Visual Viewer Endpoint - supports both /dyno and /dino
+  app.get(['/dino', '/dino/', '/dino/stream', '/dyno', '/dyno/', '/dyno/stream'], (_req, res) => {
     const engine = chromeDinoAdapter.getEngine();
     if (engine) {
-      res.redirect(`http://localhost:3010`);
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.send(engine.getCanvasHtml());
     } else {
-      res.setHeader('Content-Type', 'text/html');
-      res.send(`<!DOCTYPE html><html><head><title>Chrome Dino - TEZMC</title><style>body{background:#111;color:#0f0;font-family:monospace;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;}</style></head><body><h1>🦕 Chrome Dino Engine not running — start a session first.</h1></body></html>`);
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.send(`<!DOCTYPE html><html><head><title>Chrome Dino - TEZMC</title><style>body{background:#090a0f;color:#10b981;font-family:monospace;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;}</style></head><body><h1>🦕 Chrome Dino Engine initializing...</h1></body></html>`);
     }
   });
 
-  app.get('/dino/state', (_req, res) => {
+  app.get(['/dino/state', '/dyno/state'], (_req, res) => {
     const engine = chromeDinoAdapter.getEngine();
     if (engine) {
       res.json({
-        state: engine.getState(),
+        ...engine.getState(),
+        obstacles: (engine as any).obstacles || [],
         lastAction: 'AUTONOMOUS RUNNER ACTIVE'
       });
     } else {
       res.json({
-        state: { score: 0, highScore: 0, speed: 6, distance: 0 },
+        score: 0, highScore: 0, speed: 8, distance: 0,
+        obstacles: [],
         lastAction: 'STANDBY'
       });
+    }
+  });
+
+  app.post(['/dino/action', '/dyno/action'], (req, res) => {
+    const engine = chromeDinoAdapter.getEngine();
+    if (engine) {
+      const cmd = String(req.body.command || req.body.action || '').toLowerCase().trim();
+      let result: any = { success: false, message: 'Unknown command' };
+      if (cmd === 'jump' || cmd === 'space' || cmd === 'up') {
+        result = engine.jump(req.body.sender || 'Viewer');
+      } else if (cmd === 'duck' || cmd === 'down') {
+        result = engine.duck(req.body.sender || 'Viewer');
+      } else if (cmd === 'restart') {
+        engine.resetGame(true);
+        result = { success: true, message: 'Game Reset', state: engine.getState() };
+      }
+      res.json(result);
+    } else {
+      res.status(503).json({ error: 'Engine not active' });
     }
   });
 

@@ -17,11 +17,8 @@ echo "[Entrypoint] Launching TEZMC API Server..."
 node apps/api/dist/index.js &
 API_PID=$!
 
-# 3. Wait for visual streamer (defaults to 3008 or 3009 if ACTIVE_GAME=pokemon-red)
-TARGET_PORT=${VIEWER_PORT:-3008}
-if [ "$ACTIVE_GAME" = "pokemon-red" ]; then
-    TARGET_PORT=3009
-fi
+# 3. Wait for visual streamer (defaults to 3010 for Chrome Dino)
+TARGET_PORT=${VIEWER_PORT:-3010}
 
 echo "[Entrypoint] Waiting for visual streamer on http://127.0.0.1:$TARGET_PORT..."
 MAX_WAIT=30

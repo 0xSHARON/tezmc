@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import http from 'node:http';
 import express from 'express';
 import { AdapterRegistry } from '@autoplay/game-adapter-sdk';
-import { SubwaySurfersAdapter } from '@autoplay/adapter-subway-surfers';
+import { ChromeDinoAdapter } from '@autoplay/adapter-chrome-dino';
 import { StreamingManager } from '@autoplay/streaming';
 import { SessionStateMachine } from '@autoplay/session-manager';
 import { MonitoringService } from '@autoplay/monitoring';
@@ -19,7 +19,7 @@ describe('TEZMC Control API Integration Tests', () => {
     app.use(express.json());
 
     const reg = AdapterRegistry.getInstance();
-    const mock = new SubwaySurfersAdapter();
+    const mock = new ChromeDinoAdapter();
     if (!reg.has(mock.id)) {
       reg.register(mock);
     }
@@ -73,19 +73,18 @@ describe('TEZMC Control API Integration Tests', () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(Array.isArray(body.adapters)).toBe(true);
-    expect(body.adapters.some((a: any) => a.id === 'subway-surfers')).toBe(true);
+    expect(body.adapters.some((a: any) => a.id === 'chrome-dino')).toBe(true);
   });
 
   it('POST /games/:id/validate should validate adapter configuration schema', async () => {
-    const res = await fetch(`${baseUrl}/games/subway-surfers/validate`, {
+    const res = await fetch(`${baseUrl}/games/chrome-dino/validate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        botName: 'JakeSurfer',
         mode: 'autonomous_ai',
-        difficulty: 'normal',
-        autoRevive: true,
-        viewerPort: 3008,
+        speedMultiplier: 1.0,
+        autoRestart: true,
+        viewerPort: 3010,
         enableViewer: false
       })
     });
