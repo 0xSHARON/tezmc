@@ -139,8 +139,15 @@ class EmulationServer:
         self.pyboy = PyBoy(self.rom_path, window="null")
         self.pyboy.set_emulation_speed(1)
 
-        # Load existing state if available
-        if os.path.exists(self.state_file):
+        # Check if START_FRESH is requested (default 1 to ensure new streams start from beginning)
+        start_fresh = os.environ.get("START_FRESH", "1").lower() in ("1", "true", "yes")
+        if start_fresh and os.path.exists(self.state_file):
+            try:
+                os.remove(self.state_file)
+                print(f"[PyBoy] START_FRESH active: Removed stale state file {self.state_file}", flush=True)
+            except Exception as e:
+                print(f"[PyBoy] Note on stale state removal: {e}", flush=True)
+        elif not start_fresh and os.path.exists(self.state_file):
             try:
                 with open(self.state_file, "rb") as f:
                     self.pyboy.load_state(f)
@@ -153,6 +160,30 @@ class EmulationServer:
         self.emu_thread.start()
 
         self._start_http()
+
+    def reset_game(self):
+        with self.lock:
+            if os.path.exists(self.state_file):
+                try:
+                    os.remove(self.state_file)
+                    print(f"[PyBoy] Deleted state file {self.state_file} on reset", flush=True)
+                except Exception as e:
+                    print(f"[PyBoy] Note on state file removal: {e}", flush=True)
+            if self.pyboy:
+                try:
+                    self.pyboy.stop()
+                except Exception:
+                    pass
+            self.pyboy = PyBoy(self.rom_path, window="null")
+            self.pyboy.set_emulation_speed(1)
+            self.last_pos = (0, 0, 0)
+            self.stuck_counter = 0
+            self.starter_picked = False
+            self.was_dialogue = False
+            self.copilot_tick = 0
+            self.last_action_desc = "GAME RESET: PLAYING FROM STARTING"
+            print("[PyBoy] Fresh game started from title screen!", flush=True)
+            return {"success": True, "message": "Emulation reset to title screen"}
 
     def _emulation_loop(self):
         fps = 60
@@ -412,7 +443,7 @@ class EmulationServer:
         elif map_id == 0x0C:
             # Route 1
             if has_parcel and not pokedex_obtained:
-                # Return South to Pallet Town
+                # Return South to Pallet Town (ledges face south, direct downward passage)
                 if x < 8:
                     btn = "right"
                 elif x > 12:
@@ -420,13 +451,47 @@ class EmulationServer:
                 else:
                     btn = "down"
             else:
-                # Head North to Viridian City
-                if x < 8:
-                    btn = "right"
-                elif x > 13:
-                    btn = "left"
+                # Heading North to Viridian City (avoids all south-facing ledges and tree blocks)
+                if y >= 27:
+                    # Pallet Town exit corridor
+                    if x < 10:
+                        btn = "right"
+                    elif x > 12:
+                        btn = "left"
+                    else:
+                        btn = "up"
+                elif y >= 21:
+                    # Bypass south-facing ledge/trees at Y=23-24 by moving to open corridor at X=12..14
+                    if x < 12:
+                        btn = "right"
+                    elif x > 14:
+                        btn = "left"
+                    else:
+                        btn = "up"
+                elif y >= 15:
+                    # Bypass ledge at Y=19: open gap is at X=8..9
+                    if x > 9:
+                        btn = "left"
+                    elif x < 8:
+                        btn = "right"
+                    else:
+                        btn = "up"
+                elif y >= 4:
+                    # Bypass trees at Y=14 and ledge at Y=4-5: open corridor is at X=14..16
+                    if x < 14:
+                        btn = "right"
+                    elif x > 16:
+                        btn = "left"
+                    else:
+                        btn = "up"
                 else:
-                    btn = "up"
+                    # Approach Viridian City entrance at X=10..11
+                    if x < 10:
+                        btn = "right"
+                    elif x > 11:
+                        btn = "left"
+                    else:
+                        btn = "up"
 
         elif map_id == 0x01:
             # Viridian City
@@ -463,10 +528,10 @@ class EmulationServer:
                 else:
                     btn = "down"
             else:
-                # Pokedex obtained: Head North to Route 2 at (18, 0)
-                if x < 18:
+                # Pokedex obtained: Head North along the main asphalt road to Route 2 at (21, 0)
+                if x < 21:
                     btn = "right"
-                elif x > 18:
+                elif x > 21:
                     btn = "left"
                 else:
                     btn = "up"
@@ -941,6 +1006,26 @@ class EmulationServer:
                     except Exception as e:
                         err_body = json.dumps({"error": str(e)}).encode("utf-8")
                         self.send_response(400)
+                        self.send_header("Content-Type", "application/json")
+                        self.send_header("Content-Length", str(len(err_body)))
+                        self.end_headers()
+                        self.wfile.write(err_body)
+                        return
+
+                if self.path == "/reset":
+                    try:
+                        res = emu.reset_game()
+                        body = json.dumps(res).encode("utf-8")
+                        self.send_response(200)
+                        self.send_header("Content-Type", "application/json")
+                        self.send_header("Content-Length", str(len(body)))
+                        self.send_header("Access-Control-Allow-Origin", "*")
+                        self.end_headers()
+                        self.wfile.write(body)
+                        return
+                    except Exception as e:
+                        err_body = json.dumps({"error": str(e)}).encode("utf-8")
+                        self.send_response(500)
                         self.send_header("Content-Type", "application/json")
                         self.send_header("Content-Length", str(len(err_body)))
                         self.end_headers()

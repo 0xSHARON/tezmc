@@ -137,6 +137,18 @@ export class PokemonRedEngine extends EventEmitter {
       });
     }
 
+    // If start fresh requested, clear stale state files
+    const startFresh = (process.env.START_FRESH || '1').toLowerCase() !== '0';
+    if (startFresh && this.romPath) {
+      const stateFile = this.romPath.replace(/\.gb$/, '.state');
+      if (fs.existsSync(stateFile)) {
+        try {
+          fs.unlinkSync(stateFile);
+          this.emit('log', { level: 'info', message: `START_FRESH: Cleaned stale state ${stateFile}` });
+        } catch {}
+      }
+    }
+
     // 2. Start PyBoy Runner
     this.startPyBoyRunner();
 
@@ -511,7 +523,30 @@ export class PokemonRedEngine extends EventEmitter {
           return;
         }
 
-        // Default: Broadcast 1280x720 Studio Canvas
+        if (pathname === '/reset' && req.method === 'POST') {
+          const resetReq = http.request({
+            hostname: '127.0.0.1',
+            port: 3010,
+            path: '/reset',
+            method: 'POST',
+            timeout: 5000
+          }, (resetRes) => {
+            let data = '';
+            resetRes.on('data', chunk => data += chunk);
+            resetRes.on('end', () => {
+              res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+              res.end(data || JSON.stringify({ success: true, message: 'Game reset to beginning' }));
+            });
+          });
+          resetReq.on('error', (err) => {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: err.message }));
+          });
+          resetReq.end();
+          return;
+        }
+
+        // Default: Brutalism Pure Gameplay Stream Interface
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
         res.end(this.getBroadcastStudioHtml());
       });
@@ -519,7 +554,7 @@ export class PokemonRedEngine extends EventEmitter {
       this.server.listen(port, '0.0.0.0', () => {
         this.emit('log', {
           level: 'info',
-          message: `Pokemon Red 1280x720 Broadcast Studio listening on http://0.0.0.0:${port}`
+          message: `Pokemon Red Brutalist Gameplay Stream listening on http://0.0.0.0:${port}`
         });
         resolve();
       });
@@ -531,450 +566,546 @@ export class PokemonRedEngine extends EventEmitter {
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=1280, height=720, initial-scale=1.0">
-  <title>Pokémon Red - Chat Plays Pokémon (24/7 Retro Emulation)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>POKÉMON RED // BRUTALIST STREAM TERMINAL</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body {
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background: #060813;
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      border-radius: 0 !important;
+    }
+    body {
+      background-color: #050505;
+      color: #f0f0f0;
+      font-family: 'JetBrains Mono', 'Courier New', Consolas, monospace;
+      padding: 16px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    header {
+      background: #000;
+      border: 3px solid #fff;
+      padding: 12px 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      box-shadow: 5px 5px 0px #fff;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .brand-title {
+      font-size: 1.25rem;
+      font-weight: 900;
+      letter-spacing: 1px;
+      color: #fff;
+    }
+    .brand-badge {
+      font-size: 0.75rem;
+      background: #222;
+      border: 1px solid #555;
+      padding: 2px 8px;
+      color: #00ff66;
+    }
+    .game-selector {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .selector-label {
+      font-size: 0.8rem;
+      font-weight: 900;
+      color: #888;
+      letter-spacing: 0.5px;
+    }
+    .btn-brutal {
+      background: #000;
+      color: #fff;
+      border: 2px solid #fff;
+      padding: 8px 14px;
+      font-family: inherit;
+      font-size: 0.85rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 3px 3px 0px #fff;
+      transition: all 0.05s ease;
+    }
+    .btn-brutal:hover {
+      background: #1a1a1a;
+      transform: translate(-1px, -1px);
+      box-shadow: 4px 4px 0px #fff;
+    }
+    .btn-brutal:active {
+      transform: translate(2px, 2px);
+      box-shadow: 1px 1px 0px #fff;
+    }
+    .btn-brutal.active {
+      background: #fff;
+      color: #000;
+      box-shadow: 3px 3px 0px #00ff66;
+      border-color: #00ff66;
+    }
+    .btn-reset {
+      border-color: #ff0055;
+      color: #ff0055;
+      box-shadow: 3px 3px 0px #ff0055;
+    }
+    .btn-reset:hover {
+      background: #ff0055;
+      color: #000;
+      box-shadow: 4px 4px 0px #fff;
+    }
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 16px;
+      flex: 1;
+    }
+    @media (max-width: 960px) {
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    .stream-card {
+      background: #000;
+      border: 3px solid #fff;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      box-shadow: 6px 6px 0px #fff;
+    }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid #222;
+      padding-bottom: 8px;
+    }
+    .channel-tag {
+      font-size: 0.85rem;
+      font-weight: 900;
+      color: #aaa;
+    }
+    .tag-live {
+      background: #00ff66;
+      color: #000;
+      font-weight: 900;
+      padding: 3px 8px;
+      font-size: 0.75rem;
+      letter-spacing: 1px;
+    }
+    .tag-reconnecting {
+      background: #ffcc00;
+      color: #000;
+      font-weight: 900;
+      padding: 3px 8px;
+      font-size: 0.75rem;
+    }
+    .screen-wrapper {
+      background: #0a0a0a;
+      border: 3px solid #fff;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace, sans-serif;
-      user-select: none;
+      overflow: hidden;
+      aspect-ratio: 160 / 144;
+      max-height: 580px;
+      margin: 0 auto;
+      width: 100%;
+      box-shadow: inset 0 0 30px rgba(0,0,0,0.9);
     }
-    #studio-canvas {
-      width: 1280px;
-      height: 720px;
-      max-width: 100vw;
-      max-height: 100vh;
-      aspect-ratio: 16 / 9;
+    .screen-wrapper img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
       display: block;
-      background: #060813;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+    }
+    .stream-info-bar {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      color: #888;
+      border-top: 2px solid #222;
+      padding-top: 8px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .stat-box {
+      background: #000;
+      border: 3px solid #fff;
+      padding: 14px;
+      box-shadow: 5px 5px 0px #fff;
+    }
+    .stat-title {
+      font-size: 0.85rem;
+      font-weight: 900;
+      border-bottom: 2px solid #fff;
+      padding-bottom: 6px;
+      margin-bottom: 10px;
+      color: #00ff66;
+      display: flex;
+      justify-content: space-between;
+    }
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.82rem;
+      margin-bottom: 6px;
+      border-bottom: 1px dashed #222;
+      padding-bottom: 4px;
+    }
+    .stat-label {
+      color: #888;
+      font-weight: bold;
+    }
+    .stat-val {
+      color: #fff;
+      font-weight: 900;
+      text-align: right;
+    }
+    .hp-container {
+      margin-top: 6px;
+      border: 2px solid #fff;
+      background: #111;
+      height: 16px;
+      width: 100%;
+    }
+    .hp-bar {
+      height: 100%;
+      background: #00ff66;
+      width: 100%;
+      transition: width 0.2s ease, background 0.2s ease;
+    }
+    .badge-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 4px;
+      margin-top: 6px;
+    }
+    .badge-chip {
+      border: 1px solid #444;
+      font-size: 0.65rem;
+      text-align: center;
+      padding: 3px 2px;
+      color: #666;
+      background: #0a0a0a;
+    }
+    .badge-chip.earned {
+      border-color: #00ff66;
+      color: #00ff66;
+      font-weight: 900;
+      background: #002200;
+    }
+    .controls-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      max-width: 220px;
+      margin: 10px auto;
+    }
+    .btn-pad {
+      background: #111;
+      color: #fff;
+      border: 2px solid #fff;
+      padding: 10px;
+      font-family: inherit;
+      font-size: 0.85rem;
+      font-weight: 900;
       cursor: pointer;
+      box-shadow: 3px 3px 0px #fff;
+      transition: all 0.05s ease;
+    }
+    .btn-pad:active {
+      transform: translate(2px, 2px);
+      box-shadow: 1px 1px 0px #fff;
+      background: #fff;
+      color: #000;
+    }
+    .action-btns {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .kbd-hint {
+      font-size: 0.7rem;
+      color: #666;
+      text-align: center;
+      margin-top: 8px;
     }
   </style>
 </head>
 <body>
-  <canvas id="studio-canvas" width="1280" height="720"></canvas>
+  <header>
+    <div class="brand">
+      <span class="brand-title">TEZMC // STREAM_TERMINAL</span>
+      <span class="brand-badge">[CORE: PYBOY_DMG01]</span>
+    </div>
+    <div class="game-selector">
+      <span class="selector-label">SELECT STREAM:</span>
+      <a href="./" class="btn-brutal active">[► POKÉMON RED]</a>
+      <a href="/subway/" class="btn-brutal">[► SUBWAY SURFERS]</a>
+      <button id="btn-reset" class="btn-brutal btn-reset" title="Restart emulation from beginning">[↺ PLAY FROM START]</button>
+    </div>
+  </header>
+
+  <main class="main-grid">
+    <section class="stream-card">
+      <div class="card-header">
+        <span class="channel-tag">[FEED: 0x01_AUTHENTIC_GAMEPLAY_RAW]</span>
+        <span id="live-indicator" class="tag-live">● STREAM LIVE</span>
+      </div>
+      <div class="screen-wrapper">
+        <img id="game-stream" src="./stream" alt="GAMEPLAY FEED" />
+      </div>
+      <div class="stream-info-bar">
+        <span>RESOLUTION: 160x144 (PIXEL-PERFECT)</span>
+        <span id="meta-coords">POS: (0, 0)</span>
+        <span id="meta-fps">FEED: 60 FPS</span>
+      </div>
+    </section>
+
+    <aside class="sidebar">
+      <!-- Trainer & Objective -->
+      <div class="stat-box">
+        <div class="stat-title">
+          <span>TRAINER TELEMETRY</span>
+          <span id="val-mode" style="color: #fff;">[ANARCHY]</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">TRAINER:</span>
+          <span id="val-trainer" class="stat-val">RED</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">MONEY:</span>
+          <span id="val-money" class="stat-val">¥3,000</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">POKÉDEX:</span>
+          <span id="val-pokedex" class="stat-val">1 OWNED / 3 SEEN</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">STEPS:</span>
+          <span id="val-steps" class="stat-val">0</span>
+        </div>
+        <div class="stat-row" style="flex-direction: column; gap: 4px;">
+          <span class="stat-label">CURRENT OBJECTIVE:</span>
+          <span id="val-obj" class="stat-val" style="color: #ffcc00; text-align: left; font-size: 0.78rem;">Explore Kanto & Defeat Gym Leaders</span>
+        </div>
+      </div>
+
+      <!-- Party Pokemon -->
+      <div class="stat-box">
+        <div class="stat-title">
+          <span>PARTY & COMBAT</span>
+          <span id="val-badges-count" style="color: #fff;">0 / 8 BADGES</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">LEAD POKÉMON:</span>
+          <span id="val-pkmn" class="stat-val">CHARMANDER Lv. 5</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">PARTY HP:</span>
+          <span id="val-hp" class="stat-val">20 / 20</span>
+        </div>
+        <div class="hp-container">
+          <div id="hp-bar" class="hp-bar"></div>
+        </div>
+        <div class="badge-grid">
+          <div id="badge-0" class="badge-chip">BOULDER</div>
+          <div id="badge-1" class="badge-chip">CASCADE</div>
+          <div id="badge-2" class="badge-chip">THUNDER</div>
+          <div id="badge-3" class="badge-chip">RAINBOW</div>
+          <div id="badge-4" class="badge-chip">SOUL</div>
+          <div id="badge-5" class="badge-chip">MARSH</div>
+          <div id="badge-6" class="badge-chip">VOLCANO</div>
+          <div id="badge-7" class="badge-chip">EARTH</div>
+        </div>
+      </div>
+
+      <!-- Location & Action -->
+      <div class="stat-box">
+        <div class="stat-title">
+          <span>LOCATION & ACTION</span>
+          <span id="val-battle" style="color: #888;">[OVERWORLD]</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">CURRENT MAP:</span>
+          <span id="val-map" class="stat-val" style="color: #00ff66;">Pallet Town</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">LAST ACTION:</span>
+          <span id="val-action" class="stat-val" style="font-size: 0.75rem;">AI RUNNER ACTIVE</span>
+        </div>
+      </div>
+
+      <!-- Manual Joypad Control -->
+      <div class="stat-box">
+        <div class="stat-title">
+          <span>GAME BOY CONTROLLER</span>
+        </div>
+        <div class="controls-grid">
+          <div></div>
+          <button class="btn-pad" onclick="sendInput('up')">▲ UP</button>
+          <div></div>
+          <button class="btn-pad" onclick="sendInput('left')">◄ LEFT</button>
+          <button class="btn-pad" onclick="sendInput('down')">▼ DOWN</button>
+          <button class="btn-pad" onclick="sendInput('right')">► RIGHT</button>
+        </div>
+        <div class="action-btns">
+          <button class="btn-pad" style="flex: 1;" onclick="sendInput('select')">SELECT</button>
+          <button class="btn-pad" style="flex: 1;" onclick="sendInput('start')">START</button>
+          <button class="btn-pad" style="flex: 1; border-color: #ff0055;" onclick="sendInput('b')">B</button>
+          <button class="btn-pad" style="flex: 1; border-color: #00ff66;" onclick="sendInput('a')">A</button>
+        </div>
+        <div class="kbd-hint">KEYBOARD: ARROWS / WASD = MOVE | Z / J = A | X / K = B | ENTER = START | SHIFT = SELECT</div>
+      </div>
+    </aside>
+  </main>
 
   <script>
-    const canvas = document.getElementById('studio-canvas');
-    const ctx = canvas.getContext('2d');
+    const streamImg = document.getElementById('game-stream');
+    const liveIndicator = document.getElementById('live-indicator');
     const basePath = window.location.pathname.endsWith('/') ? window.location.pathname : window.location.pathname + '/';
+    const streamUrl = basePath + 'stream';
 
-    // Bulletproof polyfills
-    function safeRoundRect(c, x, y, w, h, r) {
-      if (typeof r === 'undefined') r = 0;
-      if (typeof r === 'number') r = { tl: r, tr: r, br: r, bl: r };
-      c.beginPath();
-      c.moveTo(x + r.tl, y);
-      c.lineTo(x + w - r.tr, y);
-      c.quadraticCurveTo(x + w, y, x + w, y + r.tr);
-      c.lineTo(x + w, y + h - r.br);
-      c.quadraticCurveTo(x + w, y + h, x + w - r.br, y + h);
-      c.lineTo(x + r.bl, y + h);
-      c.quadraticCurveTo(x, y + h, x, y + h - r.bl);
-      c.lineTo(x, y + r.tl);
-      c.quadraticCurveTo(x, y, x + r.tl, y);
-      c.closePath();
-    }
+    streamImg.src = streamUrl;
 
-    let state = {
-      trainerName: 'RED',
-      currentMap: "Player's House 2F",
-      badges: [],
-      party: [
-        { name: 'CHARMANDER', level: 5, currentHp: 20, maxHp: 20, status: 'OK' }
-      ],
-      money: 3000,
-      pokedexOwned: 1,
-      pokedexSeen: 3,
-      stepCount: 420,
-      mode: 'anarchy',
-      recentCommands: [],
-      lastAction: 'AUTONOMOUS EXPLORATION ACTIVE',
-      isBattle: false,
-      battleEnemy: null,
-      romLoaded: true,
-      romTitle: 'POKEMON RED',
-      fps: 60
+    streamImg.onerror = () => {
+      liveIndicator.textContent = '○ RECONNECTING';
+      liveIndicator.className = 'tag-reconnecting';
+      setTimeout(() => {
+        streamImg.src = streamUrl + '?t=' + Date.now();
+      }, 1500);
     };
 
-    let highlightedButton = '';
-    let highlightTimer = 0;
+    streamImg.onload = () => {
+      liveIndicator.textContent = '● STREAM LIVE';
+      liveIndicator.className = 'tag-live';
+    };
 
-    // Send action to backend
-    async function sendAction(btn, sender = 'Viewer') {
+    async function sendInput(action) {
       try {
-        highlightedButton = btn.toLowerCase();
-        highlightTimer = 20;
         await fetch(basePath + 'action', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: btn, sender: sender })
+          body: JSON.stringify({ action, sender: 'Web' })
         });
-      } catch (e) {}
+      } catch (err) {
+        console.warn('Action failed:', err);
+      }
     }
 
-    // Keyboard support: Arrows / WASD, Z (A), X (B), Enter (Start), Shift/Space (Select)
-    window.addEventListener('keydown', (e) => {
-      let act = null;
-      const k = e.key.toLowerCase();
-      if (k === 'arrowup' || k === 'w') act = 'up';
-      else if (k === 'arrowdown' || k === 's') act = 'down';
-      else if (k === 'arrowleft' || k === 'a') act = 'left';
-      else if (k === 'arrowright' || k === 'd') act = 'right';
-      else if (k === 'z' || k === 'j') act = 'a';
-      else if (k === 'x' || k === 'k') act = 'b';
-      else if (k === 'enter') act = 'start';
-      else if (k === 'shift' || k === ' ') act = 'select';
-      if (act) {
-        e.preventDefault();
-        sendAction(act, 'WebPlayer');
+    document.getElementById('btn-reset').addEventListener('click', async () => {
+      if (!confirm('ARE YOU SURE? This will restart the game from the beginning (Title Screen).')) return;
+      try {
+        const res = await fetch(basePath + 'reset', { method: 'POST' });
+        const data = await res.json();
+        alert(data.message || 'Game reset! Starting from title screen.');
+        setTimeout(() => {
+          streamImg.src = streamUrl + '?t=' + Date.now();
+        }, 500);
+      } catch (err) {
+        alert('Reset failed: ' + err.message);
       }
     });
 
-    // Mouse / Touch click on canvas hitboxes
-    canvas.addEventListener('click', (e) => {
-      const rect = canvas.getBoundingClientRect();
-      const scaleX = 1280 / rect.width;
-      const scaleY = 720 / rect.height;
-      const cx = (e.clientX - rect.left) * scaleX;
-      const cy = (e.clientY - rect.top) * scaleY;
-
-      // D-Pad hitboxes (center ~175, 470)
-      if (cx >= 155 && cx <= 195 && cy >= 420 && cy <= 460) sendAction('up');
-      else if (cx >= 155 && cx <= 195 && cy >= 480 && cy <= 520) sendAction('down');
-      else if (cx >= 115 && cx <= 155 && cy >= 450 && cy <= 490) sendAction('left');
-      else if (cx >= 195 && cx <= 235 && cy >= 450 && cy <= 490) sendAction('right');
-      // B button (225, 535, r=20)
-      else if (Math.hypot(cx - 225, cy - 535) <= 25) sendAction('b');
-      // A button (270, 505, r=20)
-      else if (Math.hypot(cx - 270, cy - 505) <= 25) sendAction('a');
-      // Select (145, 590, w=28, h=10)
-      else if (cx >= 140 && cx <= 175 && cy >= 580 && cy <= 610) sendAction('select');
-      // Start (195, 590, w=28, h=10)
-      else if (cx >= 190 && cx <= 225 && cy >= 580 && cy <= 610) sendAction('start');
+    // Keyboard bindings
+    window.addEventListener('keydown', (e) => {
+      if (e.target && e.target.tagName === 'INPUT') return;
+      const keyMap = {
+        'ArrowUp': 'up', 'KeyW': 'up', 'w': 'up',
+        'ArrowDown': 'down', 'KeyS': 'down', 's': 'down',
+        'ArrowLeft': 'left', 'KeyA': 'left', 'a': 'left',
+        'ArrowRight': 'right', 'KeyD': 'right', 'd': 'right',
+        'KeyZ': 'a', 'z': 'a', 'KeyJ': 'a', 'j': 'a',
+        'KeyX': 'b', 'x': 'b', 'KeyK': 'b', 'k': 'b',
+        'Enter': 'start', 'Space': 'start',
+        'ShiftRight': 'select', 'ShiftLeft': 'select'
+      };
+      const act = keyMap[e.code] || keyMap[e.key];
+      if (act) {
+        e.preventDefault();
+        sendInput(act);
+      }
     });
 
-    // Fetch state from backend at 20Hz
+    // Telemetry Sync
     async function syncState() {
       try {
         const res = await fetch(basePath + 'state');
-        if (res.ok) {
-          const data = await res.json();
-          if (data.recentCommands && data.recentCommands[0]) {
-            if (state.recentCommands[0]?.id !== data.recentCommands[0].id) {
-              highlightedButton = data.recentCommands[0].command.toLowerCase();
-              highlightTimer = 18; // frames
-            }
+        if (!res.ok) return;
+        const s = await res.json();
+
+        if (s.trainerName) document.getElementById('val-trainer').textContent = s.trainerName;
+        if (s.money !== undefined) document.getElementById('val-money').textContent = '¥' + s.money.toLocaleString();
+        if (s.pokedexOwned !== undefined) {
+          document.getElementById('val-pokedex').textContent = s.pokedexOwned + ' OWNED / ' + (s.pokedexSeen || 0) + ' SEEN';
+        }
+        if (s.stepCount !== undefined) document.getElementById('val-steps').textContent = s.stepCount.toLocaleString();
+        if (s.currentMap) document.getElementById('val-map').textContent = s.currentMap;
+        if (s.coordinates) {
+          document.getElementById('meta-coords').textContent = 'POS: (' + s.coordinates.x + ', ' + s.coordinates.y + ')';
+        }
+        if (s.currentObjective) document.getElementById('val-obj').textContent = s.currentObjective;
+        if (s.lastAction) document.getElementById('val-action').textContent = s.lastAction;
+        if (s.mode) document.getElementById('val-mode').textContent = '[' + s.mode.toUpperCase() + ']';
+
+        if (s.party && s.party.length > 0) {
+          const lead = s.party[0];
+          document.getElementById('val-pkmn').textContent = lead.name + ' Lv. ' + lead.level;
+          document.getElementById('val-hp').textContent = lead.currentHp + ' / ' + lead.maxHp;
+          const ratio = Math.max(0, Math.min(1, lead.currentHp / (lead.maxHp || 1)));
+          const hpBar = document.getElementById('hp-bar');
+          hpBar.style.width = (ratio * 100) + '%';
+          hpBar.style.background = ratio > 0.5 ? '#00ff66' : ratio > 0.2 ? '#ffcc00' : '#ff0055';
+        }
+
+        const badges = s.badges || [];
+        document.getElementById('val-badges-count').textContent = badges.length + ' / 8 BADGES';
+        for (let i = 0; i < 8; i++) {
+          const el = document.getElementById('badge-' + i);
+          if (el) {
+            if (i < badges.length) el.classList.add('earned');
+            else el.classList.remove('earned');
           }
-          state = data;
         }
-      } catch (e) {}
-    }
-    setInterval(syncState, 60);
 
-    // 160x144 Game Boy Framebuffer directly from PyBoy Emulation
-    const gbCanvas = document.createElement('canvas');
-    gbCanvas.width = 160;
-    gbCanvas.height = 144;
-    const gbCtx = gbCanvas.getContext('2d');
-    gbCtx.imageSmoothingEnabled = false;
-
-    let hasPyBoyFrame = false;
-    function fetchNextPyBoyFrame() {
-      const img = new Image();
-      img.onload = () => {
-        hasPyBoyFrame = true;
-        gbCtx.imageSmoothingEnabled = false;
-        gbCtx.drawImage(img, 0, 0, 160, 144);
-        setTimeout(fetchNextPyBoyFrame, 33);
-      };
-      img.onerror = () => {
-        setTimeout(fetchNextPyBoyFrame, 150);
-      };
-      img.src = basePath + 'screen.jpg?t=' + Date.now();
-    }
-    fetchNextPyBoyFrame();
-
-    function renderGameBoyScreen() {
-      if (!hasPyBoyFrame) {
-        gbCtx.fillStyle = '#0f380f';
-        gbCtx.fillRect(0, 0, 160, 144);
-        gbCtx.fillStyle = '#9bbc0f';
-        gbCtx.font = 'bold 8px monospace';
-        gbCtx.fillText('LOADING ENHANCED', 24, 64);
-        gbCtx.fillText('POKEMON RED ROM...', 20, 80);
-      }
+        const inBattle = s.inBattle || s.isBattle;
+        const bEl = document.getElementById('val-battle');
+        if (inBattle) {
+          bEl.textContent = '[IN BATTLE]';
+          bEl.style.color = '#ff0055';
+        } else {
+          bEl.textContent = '[OVERWORLD]';
+          bEl.style.color = '#888';
+        }
+      } catch (err) {}
     }
 
-    // 60FPS Broadcast Studio Render
-    function renderStudio() {
-      try {
-        renderGameBoyScreen();
-
-        // Background
-        ctx.fillStyle = '#060813';
-        ctx.fillRect(0, 0, 1280, 720);
-
-        // TOP BROADCAST HEADER
-        ctx.fillStyle = '#0c1222';
-        safeRoundRect(ctx, 20, 15, 1240, 56, 12);
-        ctx.fill();
-        ctx.strokeStyle = '#1e293b';
-        ctx.stroke();
-
-        ctx.font = 'bold 22px -apple-system, sans-serif';
-        ctx.fillStyle = '#ef4444';
-        ctx.fillText('🔴 LIVE', 45, 50);
-
-        ctx.font = 'bold 20px -apple-system, sans-serif';
-        ctx.fillStyle = '#f8fafc';
-        ctx.fillText('CHAT PLAYS POKÉMON RED // 24/7 RETRO EMULATION', 140, 50);
-
-        // MODE PILL (ANARCHY vs DEMOCRACY)
-        const isDem = state.mode === 'democracy';
-        ctx.fillStyle = isDem ? '#3b82f6' : '#f59e0b';
-        safeRoundRect(ctx, 980, 24, 150, 38, 8);
-        ctx.fill();
-        ctx.font = 'bold 16px monospace';
-        ctx.fillStyle = '#0f172a';
-        ctx.textAlign = 'center';
-        ctx.fillText(state.mode.toUpperCase(), 1055, 48);
-        ctx.textAlign = 'left';
-
-        ctx.font = 'bold 15px monospace';
-        ctx.fillStyle = '#38bdf8';
-        ctx.fillText('60 FPS', 1150, 49);
-
-        // LEFT PANEL (Chat Commands & Virtual Game Boy Controller)
-        ctx.fillStyle = '#0a0f1d';
-        safeRoundRect(ctx, 20, 85, 340, 555, 12);
-        ctx.fill();
-        ctx.strokeStyle = '#1e293b';
-        ctx.stroke();
-
-        ctx.font = 'bold 16px sans-serif';
-        ctx.fillStyle = '#94a3b8';
-        ctx.fillText('INPUT STREAM (LIVE CHAT)', 40, 115);
-
-        // Command Feed
-        let cy = 150;
-        const cmds = state.recentCommands || [];
-        for (let i = 0; i < Math.min(6, cmds.length); i++) {
-          const c = cmds[i];
-          ctx.fillStyle = i === 0 ? 'rgba(56, 189, 248, 0.15)' : 'rgba(30, 41, 59, 0.4)';
-          safeRoundRect(ctx, 35, cy - 22, 310, 36, 6);
-          ctx.fill();
-
-          ctx.font = 'bold 14px monospace';
-          ctx.fillStyle = i === 0 ? '#38bdf8' : '#cbd5e1';
-          ctx.fillText(c.sender, 50, cy);
-
-          ctx.font = 'bold 15px monospace';
-          ctx.fillStyle = '#facc15';
-          ctx.textAlign = 'right';
-          ctx.fillText(c.command, 325, cy);
-          ctx.textAlign = 'left';
-          cy += 44;
-        }
-
-        // Virtual Game Boy Controller Visualizer
-        const ctrlY = 440;
-        ctx.fillStyle = '#1e293b';
-        safeRoundRect(ctx, 35, 415, 310, 210, 10);
-        ctx.fill();
-
-        ctx.font = 'bold 13px sans-serif';
-        ctx.fillStyle = '#64748b';
-        ctx.fillText('CONTROLLER STATE', 50, 440);
-
-        if (highlightTimer > 0) highlightTimer--;
-
-        // D-Pad Drawing
-        const dpx = 110;
-        const dpy = 520;
-        function drawDpadBtn(name, x, y, w, h) {
-          const active = highlightedButton === name && highlightTimer > 0;
-          ctx.fillStyle = active ? '#38bdf8' : '#334155';
-          ctx.fillRect(x, y, w, h);
-        }
-        drawDpadBtn('up', dpx - 8, dpy - 30, 16, 24);
-        drawDpadBtn('down', dpx - 8, dpy + 6, 16, 24);
-        drawDpadBtn('left', dpx - 30, dpy - 8, 24, 16);
-        drawDpadBtn('right', dpx + 6, dpy - 8, 24, 16);
-        ctx.fillStyle = '#475569';
-        ctx.fillRect(dpx - 8, dpy - 8, 16, 16);
-
-        // A & B Buttons
-        function drawRoundBtn(name, x, y, label) {
-          const active = highlightedButton === name && highlightTimer > 0;
-          ctx.fillStyle = active ? '#ef4444' : '#991b1b';
-          ctx.beginPath();
-          ctx.arc(x, y, 16, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.font = 'bold 13px sans-serif';
-          ctx.fillStyle = '#ffffff';
-          ctx.textAlign = 'center';
-          ctx.fillText(label, x, y + 5);
-          ctx.textAlign = 'left';
-        }
-        drawRoundBtn('b', 225, 535, 'B');
-        drawRoundBtn('a', 270, 505, 'A');
-
-        // Start & Select
-        function drawPillBtn(name, x, y, label) {
-          const active = highlightedButton === name && highlightTimer > 0;
-          ctx.fillStyle = active ? '#94a3b8' : '#475569';
-          safeRoundRect(ctx, x, y, 28, 10, 4);
-          ctx.fill();
-          ctx.font = '10px monospace';
-          ctx.fillStyle = '#64748b';
-          ctx.fillText(label, x - 4, y + 22);
-        }
-        drawPillBtn('select', 145, 590, 'SELECT');
-        drawPillBtn('start', 195, 590, 'START');
-
-        // CENTER: RETRO GAME BOY SCREEN (Sharp 4x Scaled Pixel Art)
-        // Game Boy Housing Border
-        ctx.fillStyle = '#cbd5e1';
-        safeRoundRect(ctx, 380, 85, 520, 555, 14);
-        ctx.fill();
-
-        // Dark Bezel
-        ctx.fillStyle = '#334155';
-        safeRoundRect(ctx, 400, 105, 480, 515, 10);
-        ctx.fill();
-
-        // Battery LED
-        ctx.fillStyle = '#ef4444';
-        ctx.beginPath();
-        ctx.arc(425, 230, 4, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.font = '9px sans-serif';
-        ctx.fillStyle = '#94a3b8';
-        ctx.fillText('BATTERY', 412, 248);
-
-        // 160x144 Game Boy Screen -> 440 x 396
-        ctx.imageSmoothingEnabled = false;
-        ctx.drawImage(gbCanvas, 440, 145, 420, 378);
-
-        // Nintendo Game Boy Logo
-        ctx.font = 'italic bold 16px sans-serif';
-        ctx.fillStyle = '#1e3a8a';
-        ctx.textAlign = 'center';
-        ctx.fillText('Nintendo GAME BOY™', 640, 580);
-        ctx.textAlign = 'left';
-
-        // RIGHT PANEL (Party Pokémon, Badges, Trainer Info)
-        ctx.fillStyle = '#0a0f1d';
-        safeRoundRect(ctx, 920, 85, 340, 555, 12);
-        ctx.fill();
-        ctx.strokeStyle = '#1e293b';
-        ctx.stroke();
-
-        ctx.font = 'bold 16px sans-serif';
-        ctx.fillStyle = '#94a3b8';
-        ctx.fillText('TRAINER CARD', 940, 115);
-
-        ctx.font = 'bold 15px monospace';
-        ctx.fillStyle = '#38bdf8';
-        ctx.fillText('NAME: ' + (state.trainerName || 'RED'), 940, 145);
-        ctx.fillStyle = '#facc15';
-        ctx.fillText('MONEY: $' + (state.money || 0).toLocaleString(), 1100, 145);
-
-        // Badges Grid
-        ctx.font = '12px sans-serif';
-        ctx.fillStyle = '#64748b';
-        ctx.fillText('BADGES (KANTO):', 940, 180);
-        const badgesEarned = state.badges || [];
-        for (let b = 0; b < 8; b++) {
-          const bx = 940 + (b % 4) * 72;
-          const by = 195 + Math.floor(b / 4) * 36;
-          const hasBadge = b === 0 || badgesEarned.length > b;
-          ctx.fillStyle = hasBadge ? '#eab308' : '#1e293b';
-          safeRoundRect(ctx, bx, by, 64, 26, 6);
-          ctx.fill();
-          ctx.font = 'bold 11px monospace';
-          ctx.fillStyle = hasBadge ? '#0f172a' : '#475569';
-          ctx.fillText('GYM ' + (b + 1), bx + 12, by + 17);
-        }
-
-        // Party Pokémon List
-        ctx.font = 'bold 15px sans-serif';
-        ctx.fillStyle = '#94a3b8';
-        ctx.fillText('PARTY POKÉMON', 940, 295);
-
-        let py = 330;
-        const party = state.party || [];
-        for (let p = 0; p < Math.min(4, party.length); p++) {
-          const mon = party[p];
-          ctx.fillStyle = '#0f172a';
-          safeRoundRect(ctx, 940, py - 20, 300, 56, 8);
-          ctx.fill();
-          ctx.strokeStyle = '#1e293b';
-          ctx.stroke();
-
-          // Mon Name & Level
-          ctx.font = 'bold 15px monospace';
-          ctx.fillStyle = '#f8fafc';
-          ctx.fillText(mon.name, 955, py);
-          ctx.fillStyle = '#38bdf8';
-          ctx.fillText(':L' + mon.level, 1090, py);
-
-          // HP Bar
-          const hpRatio = (mon.currentHp || 1) / (mon.maxHp || 1);
-          ctx.fillStyle = '#334155';
-          ctx.fillRect(955, py + 10, 180, 8);
-          ctx.fillStyle = hpRatio > 0.5 ? '#22c55e' : (hpRatio > 0.2 ? '#eab308' : '#ef4444');
-          ctx.fillRect(955, py + 10, Math.round(180 * Math.max(0, Math.min(1, hpRatio))), 8);
-
-          ctx.font = 'bold 12px monospace';
-          ctx.fillStyle = '#94a3b8';
-          ctx.fillText(mon.currentHp + '/' + mon.maxHp, 1145, py + 18);
-
-          py += 68;
-        }
-
-        // Location & Pokedex summary
-        ctx.fillStyle = 'rgba(56, 189, 248, 0.1)';
-        safeRoundRect(ctx, 940, 580, 300, 45, 8);
-        ctx.fill();
-        ctx.font = 'bold 13px monospace';
-        ctx.fillStyle = '#38bdf8';
-        ctx.fillText('MAP: ' + state.currentMap, 955, 608);
-
-        // BOTTOM ACTION TICKER
-        ctx.fillStyle = '#0c1222';
-        safeRoundRect(ctx, 20, 652, 1240, 54, 10);
-        ctx.fill();
-        ctx.strokeStyle = '#1e293b';
-        ctx.stroke();
-
-        ctx.font = 'bold 15px monospace';
-        ctx.fillStyle = '#38bdf8';
-        ctx.fillText('[CHAT PLAYS POKÉMON] ' + (state.lastAction || 'EXPLORING'), 40, 684);
-
-        ctx.font = '14px monospace';
-        ctx.fillStyle = '#94a3b8';
-        ctx.textAlign = 'right';
-        ctx.fillText('TYPE IN CHAT: !up, !down, !left, !right, !a, !b, !start, !select, !anarchy, !democracy', 1235, 684);
-        ctx.textAlign = 'left';
-
-      } catch (err) {
-        console.error('Studio render error:', err);
-      } finally {
-        requestAnimationFrame(renderStudio);
-      }
-    }
-
-    requestAnimationFrame(renderStudio);
+    setInterval(syncState, 1000);
+    syncState();
   </script>
 </body>
 </html>`;
