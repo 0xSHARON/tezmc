@@ -555,8 +555,23 @@ class EmulationServer:
                 else:
                     btn = "right"
 
+        elif map_id == 0x27:
+            # GameFAQs: Rival's House (Daisy gives Town Map)
+            if not getattr(self, "town_map_obtained", False):
+                if y > 4:
+                    btn = "up"
+                elif x < 2:
+                    btn = "right"
+                elif x > 2:
+                    btn = "left"
+                else:
+                    btn = "a" # Talk to Daisy at (2, 3)
+                    self.town_map_obtained = True
+            else:
+                btn = "down" # Exit Rival's House down to Pallet Town
+
         elif map_id == 0x35:
-            # Pewter Gym (Brock)
+            # GameFAQs: Pewter Gym (Leader Brock - Geodude Lv 12, Onix Lv 14)
             # Walk up to Brock at (4, 3)
             if x < 4:
                 btn = "right"
@@ -565,7 +580,140 @@ class EmulationServer:
             elif y > 3:
                 btn = "up"
             else:
-                btn = "a" # Battle Brock!
+                btn = "a" # Battle Brock for Boulder Badge!
+
+        elif map_id == 0x0E:
+            # GameFAQs: Route 3 (Pewter to Mt. Moon)
+            # Navigate East through trainers to Mt. Moon exterior at (59, 5) / (18, 5)
+            if x < 58:
+                if y < 4:
+                    btn = "down"
+                elif y > 8:
+                    btn = "up"
+                else:
+                    btn = "right"
+            else:
+                btn = "up" # Enter Mt. Moon!
+
+        elif map_id in (0x3B, 0x3C):
+            # GameFAQs: Mt. Moon 1F & B1F (Cave maze)
+            # Navigate through cave to lower level ladder at (17, 11)
+            if y > 15:
+                btn = "up"
+            elif x < 17:
+                btn = "right"
+            elif y > 11:
+                btn = "up"
+            else:
+                btn = "right"
+
+        elif map_id == 0x3D:
+            # GameFAQs: Mt. Moon B2F (Super Nerd Miguel & Dome/Helix Fossil)
+            if x < 13:
+                btn = "right"
+            elif y > 8:
+                btn = "up"
+            elif x == 13 and y == 8:
+                btn = "a" # Battle Super Nerd & pick Fossil!
+            else:
+                # Head North-East to ladder leading to Route 4 exit
+                if x < 17:
+                    btn = "right"
+                else:
+                    btn = "up"
+
+        elif map_id == 0x0F:
+            # GameFAQs: Route 4 (Ledges to Cerulean City)
+            # Jump down eastern ledges towards Cerulean at (90, 10)
+            if y < 10:
+                btn = "down"
+            elif y > 12:
+                btn = "up"
+            else:
+                btn = "right"
+
+        elif map_id == 0x03:
+            # GameFAQs: Cerulean City (Gym 2 & Nugget Bridge)
+            cascade_badge = bool(badges_byte & 2)
+            if hp_ratio < 0.60:
+                # Heal at Cerulean Pokecenter (19, 17)
+                if x < 19:
+                    btn = "right"
+                elif x > 19:
+                    btn = "left"
+                elif y > 17:
+                    btn = "up"
+                else:
+                    btn = "up"
+            elif not cascade_badge:
+                # Enter Cerulean Gym (Misty) at (30, 19)
+                if x < 30:
+                    btn = "right"
+                elif x > 30:
+                    btn = "left"
+                elif y < 19:
+                    btn = "down"
+                elif y > 19:
+                    btn = "up"
+                else:
+                    btn = "up"
+            else:
+                # Cascade Badge won: Head North onto Nugget Bridge (Route 24) at (20, 0)
+                if x < 20:
+                    btn = "right"
+                elif x > 20:
+                    btn = "left"
+                else:
+                    btn = "up"
+
+        elif map_id == 0x3E:
+            # GameFAQs: Cerulean Gym (Leader Misty - Staryu Lv 18, Starmie Lv 21)
+            # Battle Misty at (4, 3)
+            if x < 4:
+                btn = "right"
+            elif x > 4:
+                btn = "left"
+            elif y > 3:
+                btn = "up"
+            else:
+                btn = "a" # Battle Misty for Cascade Badge!
+
+        elif map_id in (0x23, 0x24):
+            # GameFAQs: Route 24 (Nugget Bridge) & Route 25 (Path to Bill's Sea Cottage)
+            if map_id == 0x23:
+                # Nugget Bridge: defeat the 5 trainers heading North
+                if x < 10:
+                    btn = "right"
+                elif x > 11:
+                    btn = "left"
+                else:
+                    btn = "up"
+            else:
+                # Route 25: Head East to Bill's Cottage at (45, 3)
+                if x < 45:
+                    if y < 3:
+                        btn = "down"
+                    elif y > 6:
+                        btn = "up"
+                    else:
+                        btn = "right"
+                else:
+                    btn = "up" # Enter Bill's Sea Cottage
+
+        elif map_id == 0x39:
+            # GameFAQs: Bill's Sea Cottage (Rescue Clefairy-Bill -> Get S.S. Ticket)
+            if not getattr(self, "ss_ticket_obtained", False):
+                if y > 4:
+                    btn = "up"
+                elif x < 4:
+                    btn = "right"
+                elif x > 4:
+                    btn = "left"
+                else:
+                    btn = "a" # Talk to Bill / activate machine
+                    self.ss_ticket_obtained = True
+            else:
+                btn = "down" # Exit cottage with S.S. Ticket
 
         else:
             # Default exploration with periodic directional sweep
