@@ -201,11 +201,13 @@ export class SessionStateMachine extends EventEmitter {
       // 7. RUNNING
       this.transition('RUNNING', 'All components healthy and autonomous broadcast confirmed');
 
-      // Schedule max duration timeout
-      const maxHours = this.currentInput?.maxHours || this.maxSessionHours;
-      this.sessionTimer = setTimeout(() => {
-        this.stop(`Max session duration of ${maxHours} hours reached`);
-      }, maxHours * 3600 * 1000);
+      // Schedule max duration timeout (only if not alwaysOn)
+      if (!this.currentInput?.alwaysOn) {
+        const maxHours = this.currentInput?.maxHours || this.maxSessionHours;
+        this.sessionTimer = setTimeout(() => {
+          this.stop(`Max session duration of ${maxHours} hours reached`);
+        }, maxHours * 3600 * 1000);
+      }
 
     } catch (err: any) {
       this.triggerRecovery(`Lifecycle error: ${err?.message || err}`);

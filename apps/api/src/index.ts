@@ -86,6 +86,58 @@ async function bootstrap() {
   const priorSessions = db.listSessions(10);
   sessionMachine.reconcileOnStartup(priorSessions);
 
+  // Auto-start 24/7 autonomous Chrome Dino live broadcast if stream key exists or configured
+  const streamKey = process.env.YOUTUBE_STREAM_KEY || '';
+  const rtmpUrl = process.env.YOUTUBE_RTMP_URL || 'rtmp://a.rtmp.youtube.com/live2';
+  const shouldAutoStart = Boolean(streamKey) || process.env.AUTO_START_STREAM === 'true';
+
+  if (shouldAutoStart && sessionMachine.getState() === 'IDLE') {
+    logger.info('Auto-starting 24/7 autonomous Chrome Dinosaur live broadcast on YouTube...');
+    sessionMachine.start({
+      gameId: 'chrome-dino',
+      gameConfig: {
+        botName: 'DinoAI',
+        mode: 'autonomous_ai',
+        difficulty: 'normal',
+        autoRestart: true,
+        viewerPort: 3010,
+        enableViewer: true,
+        theme: 'brutalist_dark',
+        jumpReactionDistance: 120
+      },
+      streamConfig: streamKey ? {
+        provider: 'ffmpeg',
+        rtmpUrl: rtmpUrl,
+        destinations: [{
+          id: 'dest-youtube-live',
+          name: 'YouTube Live',
+          platform: 'youtube',
+          rtmpUrl: rtmpUrl,
+          streamKey: streamKey,
+          enabled: true
+        }],
+        width: 1280,
+        height: 720,
+        fps: 30,
+        videoBitrate: process.env.STREAM_VIDEO_BITRATE || '2500k',
+        audioBitrate: process.env.STREAM_AUDIO_BITRATE || '128k',
+        keyframeInterval: 2,
+        preset: 'veryfast',
+        overlayEnabled: true
+      } : undefined,
+      alwaysOn: true,
+      maxHours: 0
+    }).then(() => {
+      const active = sessionMachine.getActiveSession();
+      if (active) {
+        db.saveSession(active);
+        db.recordAuditLog('SESSION_AUTO_START', 'session', { sessionId: active.id, gameId: 'chrome-dino' });
+      }
+    }).catch((err) => {
+      logger.error({ err }, 'Failed to auto-start 24/7 stream session on boot');
+    });
+  }
+
   // Forward internal events to WebSockets
   sessionMachine.on('state_changed', ({ to, reason }) => {
     io.emit(SOCKET_EVENTS.SESSION_STATE_CHANGED, to);

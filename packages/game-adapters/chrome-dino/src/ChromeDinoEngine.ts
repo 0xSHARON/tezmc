@@ -556,42 +556,77 @@ export class ChromeDinoEngine extends EventEmitter {
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
 
+    let groundOffset = 0;
+    let audioCtx = null;
+
     let state = {
       status: 'PLAYING',
       score: 0,
-      highScore: 0,
+      highScore: 12450,
       speed: 8.0,
       dinoY: 520,
       isJumping: false,
-      isDucking: false
+      isDucking: false,
+      obstacles: []
     };
 
     let clouds = [
-      { x: 300, y: 120, speed: 0.8 },
-      { x: 750, y: 180, speed: 1.1 },
-      { x: 1100, y: 100, speed: 0.9 }
+      { x: 250, y: 120, speed: 0.7 },
+      { x: 720, y: 160, speed: 1.0 },
+      { x: 1150, y: 100, speed: 0.8 }
     ];
+
+    let stars = [
+      { x: 150, y: 90, size: 2 },
+      { x: 380, y: 70, size: 3 },
+      { x: 620, y: 120, size: 2 },
+      { x: 890, y: 80, size: 2.5 },
+      { x: 1050, y: 110, size: 2 }
+    ];
+
+    function playBeep(freq, duration, type = 'square') {
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (e) {}
+    }
 
     function getApiUrl(endpoint) {
       let base = window.location.pathname.replace(/\/+$/, '');
       return (base ? base : '') + '/' + endpoint;
     }
 
+    let lastMilestone = 0;
     async function syncState() {
       try {
         const res = await fetch(getApiUrl('state'));
         if (res.ok) {
           const fresh = await res.json();
+          if (fresh.score > 0 && Math.floor(fresh.score / 100) > lastMilestone) {
+            lastMilestone = Math.floor(fresh.score / 100);
+            playBeep(880, 0.15, 'square');
+          }
           state = fresh;
-          document.getElementById('valScore').textContent = String(state.score).padStart(5, '0');
-          document.getElementById('valHi').textContent = String(state.highScore).padStart(5, '0');
-          document.getElementById('valSpeed').textContent = Number(state.speed).toFixed(1);
+          document.getElementById('valScore').textContent = String(state.score || 0).padStart(5, '0');
+          document.getElementById('valHi').textContent = String(state.highScore || 0).padStart(5, '0');
+          document.getElementById('valSpeed').textContent = Number(state.speed || 8).toFixed(1);
         }
       } catch (e) {}
     }
     setInterval(syncState, 100);
 
     function sendAction(action) {
+      if (action === 'jump') playBeep(520, 0.1, 'square');
       fetch(getApiUrl('action'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -609,21 +644,111 @@ export class ChromeDinoEngine extends EventEmitter {
       }
     });
 
-    function draw() {
+    // Draw authentic pixelated T-Rex
+    function drawTrex(x, y, isJumping, isDucking, isCrashed, legToggle) {
+      ctx.fillStyle = '#f8fafc';
+
+      if (isCrashed) {
+        // Crashed T-Rex
+        ctx.fillRect(x + 12, y, 44, 68); // body
+        ctx.fillRect(x + 24, y - 24, 38, 30); // head
+        ctx.fillRect(x + 4, y + 16, 12, 28); // tail
+        ctx.fillRect(x + 50, y + 20, 10, 8); // arm
+        // Cross Eye (X)
+        ctx.fillStyle = '#ef4444';
+        ctx.fillRect(x + 44, y - 16, 6, 2);
+        ctx.fillRect(x + 46, y - 18, 2, 6);
+        ctx.fillStyle = '#f8fafc';
+        // Fallen legs
+        ctx.fillRect(x + 16, y + 68, 8, 8);
+        ctx.fillRect(x + 36, y + 68, 8, 8);
+        return;
+      }
+
+      if (isDucking) {
+        // Authentic Ducking T-Rex
+        ctx.fillRect(x, y + 26, 78, 38); // elongated back
+        ctx.fillRect(x + 56, y + 18, 34, 24); // extended head
+        ctx.fillRect(x - 8, y + 34, 12, 18); // tail
+        ctx.fillRect(x + 64, y + 42, 12, 6); // low arm
+        // Eye
+        ctx.fillStyle = '#090a0f';
+        ctx.fillRect(x + 76, y + 24, 5, 5);
+        ctx.fillStyle = '#f8fafc';
+        // Shuffling legs
+        if (legToggle) {
+          ctx.fillRect(x + 20, y + 64, 8, 10);
+          ctx.fillRect(x + 42, y + 64, 8, 6);
+        } else {
+          ctx.fillRect(x + 20, y + 64, 8, 6);
+          ctx.fillRect(x + 42, y + 64, 8, 10);
+        }
+        return;
+      }
+
+      // Standing / Running T-Rex (Authentic 1:1 Silhouette)
+      ctx.fillRect(x + 12, y, 42, 68); // torso
+      ctx.fillRect(x + 26, y - 24, 36, 28); // head & snout
+      ctx.fillRect(x + 4, y + 14, 12, 28); // arched tail
+      ctx.fillRect(x + 48, y + 18, 12, 8); // short arms
+      // Eye & Mouth
       ctx.fillStyle = '#090a0f';
+      ctx.fillRect(x + 48, y - 16, 5, 5); // eye
+      ctx.fillRect(x + 42, y - 4, 20, 3); // mouth line
+      ctx.fillStyle = '#f8fafc';
+
+      // Legs
+      if (isJumping) {
+        ctx.fillRect(x + 18, y + 68, 8, 14);
+        ctx.fillRect(x + 36, y + 68, 8, 10);
+      } else if (legToggle) {
+        // Frame 1: Left leg planted, right leg raised
+        ctx.fillRect(x + 18, y + 68, 8, 18);
+        ctx.fillRect(x + 36, y + 68, 8, 8);
+      } else {
+        // Frame 2: Left leg raised, right leg planted
+        ctx.fillRect(x + 18, y + 68, 8, 8);
+        ctx.fillRect(x + 36, y + 68, 8, 18);
+      }
+    }
+
+    // Main 60 FPS Render Loop
+    function draw() {
+      // Day / Night Cycle Check (cycles every 700 score points)
+      const score = state.score || 0;
+      const isNight = Math.floor(score / 700) % 2 === 1;
+
+      // Background
+      ctx.fillStyle = isNight ? '#0b0f19' : '#090a0f';
       ctx.fillRect(0, 0, 1280, 720);
 
+      // Night Mode Moon and Stars
+      if (isNight) {
+        ctx.fillStyle = '#e2e8f0';
+        stars.forEach(s => {
+          ctx.fillRect(s.x, s.y, s.size, s.size);
+        });
+        // Crescent Moon
+        ctx.beginPath();
+        ctx.arc(1080, 100, 24, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#0b0f19';
+        ctx.beginPath();
+        ctx.arc(1072, 94, 22, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
       // Clouds
-      ctx.fillStyle = '#1e293b';
+      ctx.fillStyle = isNight ? '#1e293b' : '#334155';
       clouds.forEach(c => {
         c.x -= c.speed;
         if (c.x < -120) c.x = 1350;
-        ctx.fillRect(c.x, c.y, 80, 24);
-        ctx.fillRect(c.x + 15, c.y - 12, 50, 14);
+        ctx.fillRect(c.x, c.y, 84, 22);
+        ctx.fillRect(c.x + 18, c.y - 12, 48, 14);
       });
 
-      // Ground Line
-      groundOffset = (groundOffset + state.speed) % 40;
+      // Ground Line & Texture
+      groundOffset = (groundOffset + (state.speed || 8)) % 40;
       ctx.strokeStyle = '#10b981';
       ctx.lineWidth = 4;
       ctx.beginPath();
@@ -631,30 +756,30 @@ export class ChromeDinoEngine extends EventEmitter {
       ctx.lineTo(1280, 588);
       ctx.stroke();
 
-      // Ground bumps/pebbles
+      // Gravel dots
       ctx.fillStyle = '#065f46';
-      for (let x = 0; x < 1280; x += 60) {
+      for (let x = 0; x < 1280; x += 50) {
         let gx = (x - groundOffset + 1280) % 1280;
-        ctx.fillRect(gx, 596, 8, 4);
-        ctx.fillRect(gx + 22, 606, 12, 3);
+        ctx.fillRect(gx, 598, 10, 3);
+        ctx.fillRect(gx + 20, 608, 14, 3);
+        ctx.fillRect(gx + 38, 602, 6, 2);
       }
 
-      // Draw Obstacles (Cacti and Pterodactyls)
+      // Draw Obstacles (Cacti & Flying Pterodactyls)
       if (state.obstacles && state.obstacles.length > 0) {
         state.obstacles.forEach(obs => {
           if (obs.type.startsWith('CACTUS')) {
-            // Crisp brutalist emerald cactus
             ctx.fillStyle = '#10b981';
-            // Main stem
+            // Stem
             ctx.fillRect(obs.x + obs.width * 0.35, obs.y, obs.width * 0.3, obs.height);
-            // Left branch
+            // Left Arm
             ctx.fillRect(obs.x, obs.y + obs.height * 0.28, obs.width * 0.35, obs.height * 0.18);
-            ctx.fillRect(obs.x, obs.y + obs.height * 0.15, obs.width * 0.15, obs.height * 0.22);
-            // Right branch
+            ctx.fillRect(obs.x, obs.y + obs.height * 0.14, obs.width * 0.16, obs.height * 0.22);
+            // Right Arm
             ctx.fillRect(obs.x + obs.width * 0.65, obs.y + obs.height * 0.38, obs.width * 0.35, obs.height * 0.18);
-            ctx.fillRect(obs.x + obs.width * 0.85, obs.y + obs.height * 0.22, obs.width * 0.15, obs.height * 0.24);
+            ctx.fillRect(obs.x + obs.width * 0.84, obs.y + obs.height * 0.22, obs.width * 0.16, obs.height * 0.24);
           } else if (obs.type.startsWith('PTERODACTYL')) {
-            // Soaring Pterodactyl with animated flapping wings
+            // Soaring Pterodactyl
             ctx.fillStyle = '#38bdf8';
             ctx.fillRect(obs.x + 10, obs.y + 12, obs.width - 20, 16); // body
             ctx.fillRect(obs.x, obs.y + 14, 14, 10); // beak
@@ -673,48 +798,19 @@ export class ChromeDinoEngine extends EventEmitter {
 
       // Draw Dinosaur
       const dx = 140;
-      const dy = state.dinoY;
-      ctx.fillStyle = '#f8fafc';
+      const dy = state.dinoY || 520;
+      const legToggle = Math.floor(Date.now() / 80) % 2 === 0;
+      drawTrex(dx, dy, state.isJumping, state.isDucking, state.status === 'CRASHED', legToggle);
 
-      if (state.isDucking) {
-        // Ducking T-Rex
-        ctx.fillRect(dx, dy + 24, 75, 40);
-        ctx.fillRect(dx + 55, dy + 18, 30, 22); // head lowered
-        ctx.fillStyle = '#090a0f';
-        ctx.fillRect(dx + 72, dy + 22, 5, 5); // eye
-      } else {
-        // Standing / Running T-Rex
-        ctx.fillRect(dx + 10, dy, 45, 68); // body
-        ctx.fillRect(dx + 25, dy - 20, 38, 30); // head
-        ctx.fillRect(dx + 5, dy + 15, 12, 25); // tail
-        ctx.fillRect(dx + 48, dy + 20, 12, 8); // arm
-        ctx.fillStyle = '#090a0f';
-        ctx.fillRect(dx + 46, dy - 12, 6, 6); // eye
-
-        // Legs (flapping animation based on frame)
-        ctx.fillStyle = '#f8fafc';
-        const legToggle = Math.floor(Date.now() / 80) % 2 === 0;
-        if (state.isJumping) {
-          ctx.fillRect(dx + 15, dy + 68, 8, 12);
-          ctx.fillRect(dx + 35, dy + 68, 8, 8);
-        } else if (legToggle) {
-          ctx.fillRect(dx + 15, dy + 68, 8, 16);
-          ctx.fillRect(dx + 35, dy + 68, 8, 8);
-        } else {
-          ctx.fillRect(dx + 15, dy + 68, 8, 8);
-          ctx.fillRect(dx + 35, dy + 68, 8, 16);
-        }
-      }
-
-      // Game Over Flash
+      // Game Over Screen
       if (state.status === 'CRASHED') {
-        ctx.fillStyle = 'rgba(239, 68, 68, 0.85)';
+        ctx.fillStyle = 'rgba(239, 68, 68, 0.88)';
         ctx.font = '900 48px monospace';
         ctx.textAlign = 'center';
         ctx.fillText('GAME OVER', 640, 340);
         ctx.font = '700 20px monospace';
         ctx.fillStyle = '#f8fafc';
-        ctx.fillText('AI RESTARTING RUN #' + (state.runCount + 1) + '...', 640, 390);
+        ctx.fillText('AI RESTARTING RUN #' + ((state.runCount || 1) + 1) + '...', 640, 390);
       }
 
       requestAnimationFrame(draw);

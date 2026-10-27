@@ -123,6 +123,8 @@ export class ChromeDinoAdapter extends BaseAdapter {
       state: 'DISCONNECTED',
       health: 0
     };
+    // Re-initialize standby viewer so port 3010 never goes dark
+    await this.initializeStandbyViewer(this.viewerPort).catch(() => {});
   }
 
   public async handleCommand(
